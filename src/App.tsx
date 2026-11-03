@@ -1,76 +1,46 @@
-import { useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, CalendarDays, ChartNoAxesColumn, ChevronDown, CircleHelp, CreditCard, House, Menu, Plus, Search, Settings2, Sparkles, Wallet, X } from 'lucide-react'
-import { demoBudget, demoTransactions } from './data/demo'
+import { X } from 'lucide-react'
+import { demoBudget, demoTransactions, type Transaction } from './data/demo'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import './home.css'
 
-const navItems = [
-  { label: 'Overview', to: '/', icon: House },
-  { label: 'Transactions', to: '/transactions', icon: CreditCard },
-  { label: 'Budgets', to: '/budgets', icon: ChartNoAxesColumn },
-  { label: 'Savings goals', to: '/savings', icon: Wallet },
+const icon = (n: number) => `/figma/icon-${n}.svg`
+const money = (n: number) => `$${n.toFixed(2)}`
+const nav = [
+  { label: 'Home', to: '/', icon: 16 },
+  { label: 'Bills', to: '/bills', icon: 17 },
+  { label: 'Savings', to: '/savings', icon: 18 },
+  { label: 'Settings', to: '/settings', icon: 19 },
 ]
-const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-function AppLayout() {
-  const [menuOpen, setMenuOpen] = useState(false)
+function Brand() { return <Link className="brand" to="/" aria-label="Chamnay home"><span className="brand-mark"><img src={icon(15)} alt="" /><i /></span><span className="brand-name">chamnay<span>.</span></span></Link> }
+function Navigation({ mobile = false }: { mobile?: boolean }) { return <nav className={mobile ? 'mobile-nav' : 'side-nav'} aria-label="Main navigation">{nav.map(item => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><img src={icon(item.icon)} alt="" /><span>{item.label}</span></NavLink>)}</nav> }
+
+function Shell() {
   const location = useLocation()
-  const currentPage = navItems.find((item) => item.to === location.pathname)?.label ?? 'Overview'
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      {menuOpen && <button aria-label="Close navigation" className="fixed inset-0 z-30 bg-slate-950/30 md:hidden" onClick={() => setMenuOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar px-4 py-5 transition-transform md:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="mb-10 flex items-center justify-between px-2">
-          <Link to="/" className="flex items-center gap-3" onClick={() => setMenuOpen(false)}>
-            <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground"><Wallet size={21} /></span>
-            <span><span className="block text-lg font-bold tracking-tight">chamnay</span><span className="block text-xs text-muted-foreground">money, made clearer</span></span>
-          </Link>
-          <button className="rounded-lg p-2 text-muted-foreground md:hidden" aria-label="Close menu" onClick={() => setMenuOpen(false)}><X size={19} /></button>
-        </div>
-        <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Workspace</p>
-        <nav className="space-y-1" aria-label="Main navigation">
-          {navItems.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenuOpen(false)} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><Icon size={18} />{label}</NavLink>)}
-        </nav>
-        <div className="mt-auto space-y-1 border-t border-border pt-4">
-          <a href="#help" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><CircleHelp size={18} />Help center</a>
-          <a href="#settings" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><Settings2 size={18} />Settings</a>
-          <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted/70 p-3"><div className="grid size-9 place-items-center rounded-full bg-[#e3eee5] text-sm font-semibold text-primary">SM</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">Sarin Meas</p><p className="text-xs text-muted-foreground">Free plan</p></div><ChevronDown size={16} className="text-muted-foreground" /></div>
-        </div>
-      </aside>
-      <div className="md:pl-64">
-        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur md:px-9">
-          <div className="flex items-center gap-3"><button className="rounded-xl p-2 hover:bg-muted md:hidden" aria-label="Open navigation" onClick={() => setMenuOpen(true)}><Menu size={20} /></button><div><p className="text-xs text-muted-foreground">Good morning, Sarin</p><h1 className="text-lg font-semibold">{currentPage}</h1></div></div>
-          <div className="flex items-center gap-2"><button aria-label="Search" className="hidden rounded-xl p-2.5 text-muted-foreground hover:bg-muted sm:block"><Search size={18} /></button><button aria-label="Notifications" className="relative rounded-xl p-2.5 text-muted-foreground hover:bg-muted"><Bell size={18} /><span className="absolute right-2 top-2 size-1.5 rounded-full bg-rose-500" /></button><Button className="hidden sm:inline-flex"><Plus size={17} />Add transaction</Button></div>
-        </header>
-        <main className="mx-auto max-w-[1440px] px-4 py-7 md:px-9 md:py-9"><Routes><Route element={<Overview />} path="/" /><Route element={<Placeholder />} path="/transactions" /><Route element={<Placeholder />} path="/budgets" /><Route element={<Placeholder />} path="/savings" /><Route element={<Placeholder />} path="*" /></Routes></main>
-      </div>
-    </div>
-  )
+  const page = nav.find(item => item.to === location.pathname)?.label ?? 'Home'
+  return <div className="app-shell"><aside className="sidebar"><Brand /><p className="tagline">A little space for your money</p><Navigation /><div className="sidebar-note"><span><img src={icon(20)} alt="" /></span><strong>Small steps count.</strong><small>One clear day at a time.</small></div></aside><div className="main-shell"><header className="topbar"><div className="mobile-brand"><Brand /></div><div className="breadcrumb">Your space <span>/</span> {page}</div><div className="profile"><span>Sarin Meas</span><b>SM</b></div></header><main className="page"><Routes><Route path="/" element={<Home />} />{nav.slice(1).map(item => <Route key={item.to} path={item.to} element={<Planned title={item.label} />} />)}<Route path="*" element={<Planned title="Page not found" />} /></Routes></main></div><Navigation mobile /></div>
+}
+function Planned({ title }: { title: string }) { return <section className="planned"><h1>{title}</h1><p>This part of Chamnay is planned for a future prototype step.</p><Link to="/">Back to Home</Link></section> }
+
+function Summary() {
+  const percent = Math.round(demoBudget.spent / demoBudget.monthlyBudget * 100)
+  return <section className="summary" aria-label="Monthly money summary"><div className="balance"><div className="balance-copy"><span>Available balance</span><strong>{money(demoBudget.balance)}</strong><p>Here’s what you have left to work with.</p></div><div className="balance-art" aria-hidden="true"><img src={icon(2)} alt="" /><i className="bubble small" /><i className="bubble medium" /><i className="bubble large" /></div></div><div className="plan"><div className="plan-values"><div><span>Spent this month</span><strong>{money(demoBudget.spent)}</strong></div><div><span>Monthly plan</span><strong>{money(demoBudget.monthlyBudget)}</strong></div></div><div className="progress-label"><span>Budget used</span><strong>{percent}%</strong></div><div className="progress"><span style={{ width: `${percent}%` }} /></div></div></section>
 }
 
-function Overview() {
-  return <div className="space-y-7">
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm text-muted-foreground">Saturday, October 31, 2026</p><h2 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">Your money at a glance</h2><p className="mt-1 text-sm text-muted-foreground">Here’s what’s happening with your budget this month.</p></div><Button variant="outline" className="w-fit"><CalendarDays size={17} />October 2026<ChevronDown size={15} /></Button></div>
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Budget summary">
-      <Card className="overflow-hidden border-0 bg-primary text-primary-foreground shadow-md"><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-white/80">Available balance</CardTitle><span className="rounded-xl bg-white/15 p-2"><Wallet size={18} /></span></CardHeader><CardContent><p className="text-3xl font-bold tracking-tight">{currency.format(demoBudget.balance)}</p><div className="mt-4 flex items-center gap-1.5 text-xs text-white/80"><ArrowUpRight size={14} />You’re on track this month</div><div className="mt-5 h-1.5 rounded-full bg-white/20"><div className="h-full w-[68%] rounded-full bg-white" /></div></CardContent></Card>
-      <Card><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Monthly spending</CardTitle><span className="rounded-xl bg-amber-50 p-2 text-amber-700"><ChartNoAxesColumn size={18} /></span></CardHeader><CardContent><p className="text-3xl font-bold tracking-tight">{currency.format(demoBudget.spent)}<span className="text-base font-medium text-muted-foreground"> / {currency.format(demoBudget.monthlyBudget)}</span></p><div className="mt-4 h-2 rounded-full bg-muted"><div className="h-full w-[23%] rounded-full bg-amber-500" /></div><p className="mt-2 text-xs text-muted-foreground">23% of your monthly budget used</p></CardContent></Card>
-      <Card><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Savings goal</CardTitle><span className="rounded-xl bg-emerald-50 p-2 text-emerald-700"><Sparkles size={18} /></span></CardHeader><CardContent><p className="text-3xl font-bold tracking-tight">{currency.format(demoBudget.savingsCurrent)}<span className="text-base font-medium text-muted-foreground"> / {currency.format(demoBudget.savingsTarget)}</span></p><div className="mt-4 h-2 rounded-full bg-muted"><div className="h-full w-[60%] rounded-full bg-emerald-600" /></div><p className="mt-2 text-xs text-muted-foreground">You’re 60% of the way there</p></CardContent></Card>
-    </section>
-    <section className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-      <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Recent transactions</CardTitle><p className="mt-1 text-sm text-muted-foreground">Your latest money in and out</p></div><Link to="/transactions" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">See all<ArrowRight size={15} /></Link></CardHeader><CardContent className="space-y-1">{demoTransactions.map((transaction) => <div className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-muted/60" key={transaction.id}><span className={`grid size-10 place-items-center rounded-xl ${transaction.kind === 'income' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{transaction.kind === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{transaction.title}</p><p className="text-xs text-muted-foreground">{transaction.category} · {transaction.date}</p></div><p className={`text-sm font-semibold ${transaction.kind === 'income' ? 'text-emerald-700' : 'text-foreground'}`}>{transaction.kind === 'income' ? '+' : '−'}{currency.format(transaction.amount)}</p></div>)}</CardContent></Card>
-      <div className="space-y-5"><Card className="bg-[#f1f5ef]"><CardContent className="p-5"><div className="flex items-start justify-between"><div><span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-primary">UPCOMING</span><h3 className="mt-4 text-lg font-bold">Phone bill</h3><p className="mt-1 text-sm text-muted-foreground">Due in 3 days · Nov 3</p></div><span className="rounded-xl bg-white p-2.5 text-primary"><Bell size={18} /></span></div><div className="mt-5 flex items-center justify-between border-t border-primary/10 pt-4"><span className="text-sm text-muted-foreground">Amount</span><span className="text-lg font-bold">$18.00</span></div></CardContent></Card><Card><CardContent className="flex items-center gap-4 p-5"><div className="grid size-11 place-items-center rounded-2xl bg-violet-50 text-violet-700"><Sparkles size={20} /></div><div className="flex-1"><p className="font-semibold">Small steps add up</p><p className="mt-1 text-sm text-muted-foreground">You’ve saved $42 more than last month.</p></div></CardContent></Card></div>
-    </section>
-    <p className="text-center text-xs text-muted-foreground">Sample dashboard data for demonstration · No personal financial data is stored</p>
-  </div>
+type EntryForm = { title: string; category: string; amount: string; kind: Transaction['kind'] }
+const emptyForm: EntryForm = { title: '', category: 'Food', amount: '', kind: 'expense' }
+function Home() {
+  const [entries, setEntries] = useState<Transaction[]>(demoTransactions)
+  const [date, setDate] = useState('all')
+  const [category, setCategory] = useState('all')
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState<EntryForm>(emptyForm)
+  const [dialog, setDialog] = useState(false)
+  const visible = useMemo(() => entries.filter(e => (date === 'all' || e.date.toLowerCase().startsWith(date)) && (category === 'all' || e.category === category)), [entries, date, category])
+  function open(entry?: Transaction) { setEditId(entry?.id ?? null); setForm(entry ? { title: entry.title, category: entry.category, amount: String(entry.amount), kind: entry.kind } : emptyForm); setDialog(true) }
+  function save(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const amount = Number(form.amount); if (!form.title.trim() || !Number.isFinite(amount) || amount <= 0) return; const next: Transaction = { id: editId ?? `t${Date.now()}`, title: form.title.trim(), category: form.category, amount, kind: form.kind, date: editId ? entries.find(e => e.id === editId)?.date ?? 'Today' : 'Today' }; setEntries(old => editId ? old.map(e => e.id === editId ? next : e) : [next, ...old]); setDialog(false) }
+  return <><div className="intro"><div><p className="greeting">Hi, Sarin <img src="/figma/sparkle-small.svg" alt="" /></p><h1>Your money, in view.</h1><p className="subtitle">A calm look at what came in and went out.</p></div><div className="month"><img src={icon(1)} alt="" /><span>October 2026</span></div></div><Summary /><div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><div><h2 id="activity-title">Money in &amp; out</h2><p>All your recent activity, in one place.</p></div><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div><div className="filters"><label className="filter"><img src={icon(4)} alt="" /><select aria-label="Filter by date" value={date} onChange={e => setDate(e.target.value)}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select><img className="chevron" src={icon(5)} alt="" /></label><label className="filter"><select aria-label="Filter by category" value={category} onChange={e => setCategory(e.target.value)}><option value="all">All categories</option><option>Food</option><option>Income</option><option>Transport</option><option>Other</option></select><img className="chevron" src={icon(5)} alt="" /></label></div><div className="entry-list">{visible.length ? visible.map(e => <div className="entry" key={e.id}><span className={`entry-icon ${e.kind}`}><img src={icon(e.kind === 'income' ? 9 : 6)} alt="" /></span><div className="entry-info"><strong>{e.title}</strong><small>{e.category} · {e.date.split(',')[0]}</small></div><strong className={`entry-amount ${e.kind}`}>{e.kind === 'income' ? '+' : '−'}{money(e.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${e.title}`} onClick={() => open(e)}><img src={icon(7)} alt="" /></button><button aria-label={`Delete ${e.title}`} onClick={() => setEntries(old => old.filter(item => item.id !== e.id))}><img src={icon(8)} alt="" /></button></div></div>) : <p className="entry-empty">No entries match these filters.</p>}</div></section><aside className="ahead" aria-labelledby="ahead-title"><div className="ahead-heading"><h2 id="ahead-title">A little look ahead</h2><img src={icon(10)} alt="" /></div><div className="ahead-grid"><article className="ahead-card bill"><span className="ahead-icon"><img src={icon(11)} alt="" /></span><small>Coming up</small><h3>Phone bill</h3><p>Due Nov 3</p><strong className="bill-amount">$18.00</strong><Link to="/bills">View bills <img src={icon(12)} alt="" /></Link></article><article className="ahead-card savings"><span className="ahead-icon"><img src={icon(13)} alt="" /></span><small>Savings goal</small><h3>$180.00 <span>of $300.00</span></h3><div className="savings-progress"><span /></div><Link to="/savings">See your goal <img src={icon(14)} alt="" /></Link></article></div></aside></div><p className="sample-note">Sample data for this prototype. Entries reset when you refresh.</p>{dialog && <div className="dialog-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setDialog(false) }}><section className="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="dialog-heading"><h2 id="dialog-title">{editId ? 'Edit entry' : 'Add entry'}</h2><button aria-label="Close" onClick={() => setDialog(false)}><X size={18} /></button></div><form onSubmit={save}><label>Title<input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="What was it for?" /></label><div className="form-row"><label>Amount<input required min="0.01" step="0.01" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" /></label><label>Type<select value={form.kind} onChange={e => setForm({ ...form, kind: e.target.value as Transaction['kind'] })}><option value="expense">Expense</option><option value="income">Income</option></select></label></div><label>Category<select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}><option>Food</option><option>Transport</option><option>Income</option><option>Other</option></select></label><Button type="submit" className="save-entry">Save entry</Button></form></section></div>}</>
 }
-
-function Placeholder() {
-  const location = useLocation()
-  const title = navItems.find((item) => item.to === location.pathname)?.label ?? 'Page not found'
-  return <Card className="mx-auto max-w-xl"><CardContent className="flex flex-col items-center px-6 py-14 text-center"><span className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Wallet size={24} /></span><h2 className="mt-5 text-xl font-bold">{title}</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">This part of Chamnay is planned for a future prototype step. Your sample overview is ready to explore.</p><Link to="/"><Button className="mt-6">Back to overview</Button></Link></CardContent></Card>
-}
-
-export default function App() {
-  return <AppLayout />
-}
+export default Shell

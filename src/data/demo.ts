@@ -7,11 +7,17 @@ export type Transaction = {
   kind: 'income' | 'expense'
 }
 
+const dateOffset = (days: number) => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export const demoTransactions: Transaction[] = [
-  { id: 't1', title: 'Lunch at Green Bowl', category: 'Food', date: 'Today, 12:35 PM', amount: 6.5, kind: 'expense' },
-  { id: 't2', title: 'Monthly allowance', category: 'Income', date: 'Today, 9:10 AM', amount: 220, kind: 'income' },
-  { id: 't3', title: 'Tuk-tuk ride', category: 'Transport', date: 'Yesterday', amount: 2.25, kind: 'expense' },
-  { id: 't4', title: 'Coffee with Dara', category: 'Food', date: 'Yesterday', amount: 3.75, kind: 'expense' },
+  { id: 't1', title: 'Lunch at Green Bowl', category: 'Food', date: dateOffset(0), amount: 6.5, kind: 'expense' },
+  { id: 't2', title: 'Monthly allowance', category: 'Income', date: dateOffset(0), amount: 220, kind: 'income' },
+  { id: 't3', title: 'Tuk-tuk ride', category: 'Transport', date: dateOffset(-1), amount: 2.25, kind: 'expense' },
+  { id: 't4', title: 'Coffee with Dara', category: 'Food', date: dateOffset(-1), amount: 3.75, kind: 'expense' },
 ]
 
 export const demoBudget = {

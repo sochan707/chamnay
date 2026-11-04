@@ -1,6 +1,6 @@
 # Chamnay
 
-A phone-friendly budget planner prototype for students. This repository currently contains the frontend app shell and a sample overview dashboard.
+A phone-friendly budget planner prototype for students. The dashboard includes expense entry, editing, deletion, and a monthly spending summary.
 
 ## Stack
 
@@ -25,8 +25,9 @@ npm run dev
 
 ```sh
 npm run typecheck
+npm test
 npm run lint
 npm run build
 ```
 
-Dashboard figures and transactions are sample data in `src/data/demo.ts`. The app does not store personal financial data. Browser storage may be added with transaction entry in a later prototype step.
+The dashboard starts with sample figures and transactions in `src/data/demo.ts`. Entry changes are saved in this browser's local storage and affect the displayed balance and monthly spending total. There is no account or server sync.

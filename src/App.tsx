@@ -87,11 +87,11 @@ function Home() {
     try { localStorage.setItem(storageKey, JSON.stringify(ledger)) } catch { /* Browser storage may be disabled. */ }
   }, [ledger])
 
-  function open(entry?: Transaction, kind: Transaction['kind'] = 'expense') {
+  function open(entry?: Transaction) {
     setEditId(entry?.id ?? null)
     setForm(entry
       ? { title: entry.title, category: entry.category, amount: String(entry.amount), kind: entry.kind, date: entry.date }
-      : { title: '', category: kind === 'income' ? 'Income' : '', amount: '', kind, date: today })
+      : { title: '', category: '', amount: '', kind: 'expense', date: today })
     setErrors({})
     setDialog(true)
   }
@@ -111,10 +111,9 @@ function Home() {
   }
 
   return <>
-    <div className="intro"><div><p className="greeting">Hi, Sarin <img src="/figma/sparkle-small.svg" alt="" /></p><h1>Your money, in view.</h1><p className="subtitle">A calm look at what came in and went out.</p></div><div className="month"><img src={icon(1)} alt="" /><span>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div></div>
     <Summary {...summary} />
-    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><div><h2 id="activity-title">Money in &amp; out</h2><p>All your recent activity, in one place.</p></div><div className="activity-actions"><Button className="add-income" onClick={() => open(undefined, 'income')}><img src={icon(3)} alt="" />Add income</Button><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div></div>
-      <div className="filters"><label className="filter"><img src={icon(4)} alt="" /><select aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select><img className="chevron" src={icon(5)} alt="" /></label><label className="filter"><select aria-label="Filter by category" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select><img className="chevron" src={icon(5)} alt="" /></label></div>
+    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in &amp; out</h2><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div>
+      <div className="filters"><div className="filter-group"><label className="filter"><img src={icon(4)} alt="" /><select aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select><img className="chevron" src={icon(5)} alt="" /></label><label className="filter"><select aria-label="Filter by category" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select><img className="chevron" src={icon(5)} alt="" /></label></div><div className="month"><img src={icon(1)} alt="" /><span>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div></div>
       <div className="entry-list">{visible.length ? visible.map(entry => <div className="entry" key={entry.id}><span className={`entry-icon ${entry.kind}`}><img src={icon(entry.kind === 'income' ? 9 : 6)} alt="" /></span><div className="entry-info"><strong>{entry.title}</strong><small>{entry.kind === 'income' ? 'Income source' : entry.category} · {displayDate(entry.date, today)}</small></div><strong className={`entry-amount ${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{money(entry.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${entry.title}`} onClick={() => open(entry)}><img src={icon(7)} alt="" /></button><button aria-label={`Delete ${entry.title}`} onClick={() => setDeleteTarget(entry)}><img src={icon(8)} alt="" /></button></div></div>) : <p className="entry-empty">No entries match these filters.</p>}</div>
     </section><aside className="ahead" aria-labelledby="ahead-title"><div className="ahead-heading"><h2 id="ahead-title">A little look ahead</h2><img src={icon(10)} alt="" /></div><div className="ahead-grid"><article className="ahead-card bill"><span className="ahead-icon"><img src={icon(11)} alt="" /></span><small>Coming up</small><h3>Phone bill</h3><p>Due Nov 3</p><strong className="bill-amount">$18.00</strong><Link to="/bills">View bills <img src={icon(12)} alt="" /></Link></article><article className="ahead-card savings"><span className="ahead-icon"><img src={icon(13)} alt="" /></span><small>Savings goal</small><h3>$180.00 <span>of $300.00</span></h3><div className="savings-progress"><span /></div><Link to="/savings">See your goal <img src={icon(14)} alt="" /></Link></article></div></aside></div>
     <p className="sample-note">Sample starting figures for this prototype. Your changes are saved in this browser.</p>

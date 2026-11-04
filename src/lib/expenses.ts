@@ -3,7 +3,7 @@ import type { Transaction } from '../data/demo'
 export type EntryForm = {
   title: string
   amount: string
-  category: string
+  categoryId: string
   date: string
   kind: Transaction['kind']
 }
@@ -19,13 +19,13 @@ export function validateEntry(form: EntryForm): FormErrors {
   const amount = Number(form.amount)
   if (!form.title.trim()) errors.title = 'Enter a title.'
   if (!/^\d+(\.\d{1,2})?$/.test(form.amount.trim()) || !Number.isFinite(amount) || amount <= 0) errors.amount = 'Enter an amount above zero, with up to two decimal places.'
-  if (!form.category.trim()) errors.category = 'Choose a category.'
+  if (form.kind === 'expense' && !form.categoryId.trim()) errors.categoryId = 'Choose a category.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date) || Number.isNaN(new Date(`${form.date}T12:00:00`).getTime()) || localDate(new Date(`${form.date}T12:00:00`)) !== form.date) errors.date = 'Choose a valid date.'
   return errors
 }
 
 export function saveEntry(entries: Transaction[], form: EntryForm, id: string): Transaction[] {
-  const entry: Transaction = { id, title: form.title.trim(), amount: Number(form.amount), category: form.category, date: form.date, kind: form.kind }
+  const entry: Transaction = { id, title: form.title.trim(), amount: Number(form.amount), categoryId: form.kind === 'expense' ? form.categoryId : null, date: form.date, kind: form.kind }
   return entries.some(item => item.id === id)
     ? entries.map(item => item.id === id ? entry : item)
     : [entry, ...entries]

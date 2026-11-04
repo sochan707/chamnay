@@ -1,7 +1,7 @@
 export type Transaction = {
   id: string
   title: string
-  category: string
+  categoryId: string | null
   date: string
   amount: number
   kind: 'income' | 'expense'
@@ -14,10 +14,10 @@ const dateOffset = (days: number) => {
 }
 
 export const demoTransactions: Transaction[] = [
-  { id: 't1', title: 'Lunch at Green Bowl', category: 'Food', date: dateOffset(0), amount: 6.5, kind: 'expense' },
-  { id: 't2', title: 'Monthly allowance', category: 'Income', date: dateOffset(0), amount: 220, kind: 'income' },
-  { id: 't3', title: 'Tuk-tuk ride', category: 'Transport', date: dateOffset(-1), amount: 2.25, kind: 'expense' },
-  { id: 't4', title: 'Coffee with Dara', category: 'Food', date: dateOffset(-1), amount: 3.75, kind: 'expense' },
+  { id: 't1', title: 'Lunch at Green Bowl', categoryId: 'food', date: dateOffset(0), amount: 6.5, kind: 'expense' },
+  { id: 't2', title: 'Monthly allowance', categoryId: null, date: dateOffset(0), amount: 220, kind: 'income' },
+  { id: 't3', title: 'Tuk-tuk ride', categoryId: 'transport', date: dateOffset(-1), amount: 2.25, kind: 'expense' },
+  { id: 't4', title: 'Coffee with Dara', categoryId: 'food', date: dateOffset(-1), amount: 3.75, kind: 'expense' },
 ]
 
 export const demoBudget = {

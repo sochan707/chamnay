@@ -10,9 +10,11 @@ import {
   removeCustomCategory, updateCustomCategory, validateCategory,
   type Category, type CategoryColorKey, type CategoryErrors, type CategoryIconKey, type CategoryInput,
 } from './lib/categories'
-import { deleteEntry, getSummary, localDate, saveEntry, validateEntry, type EntryForm, type FormErrors } from './lib/expenses'
+import { deleteEntry, filterEntries, getSummary, hasFilters, localDate, NO_FILTERS, saveEntry, validateEntry, type DateRange, type EntryFilters, type EntryForm, type FormErrors } from './lib/expenses'
 import { readLedger, writeLedger, type LedgerV2 } from './lib/ledger'
 import { Button } from '@/components/ui/button'
+import { Eye, EyeOff, Monitor, Moon, Sun } from 'lucide-react'
+import { applyTheme, readTheme, saveTheme, systemPrefersDark, type ThemeChoice } from './lib/theme'
 import './home.css'
 
 const figmaIcon = (n: number) => `/figma/icon-${n}.svg`
@@ -92,7 +94,19 @@ function Shell() {
   const page = nav.find(item => item.to === location.pathname)?.label ?? 'Home'
   const [ledger, setLedger] = useState<LedgerV2>(readLedger)
   useEffect(() => writeLedger(ledger), [ledger])
-  return <div className="app-shell"><aside className="sidebar"><Brand /><p className="tagline">A little space for your money</p><Navigation /><div className="sidebar-note"><span><img src={figmaIcon(20)} alt="" /></span><strong>Small steps count.</strong><small>One clear day at a time.</small></div></aside><div className="main-shell"><header className="topbar"><div className="mobile-brand"><Brand /></div><div className="breadcrumb">Your space <span>/</span> {page}</div><div className="profile"><span>Sarin Meas</span><b>SM</b></div></header><main className="page"><Routes><Route path="/" element={<Home ledger={ledger} setLedger={setLedger} />} /><Route path="/settings" element={<Settings ledger={ledger} setLedger={setLedger} />} /><Route path="/bills" element={<Planned title="Bills" />} /><Route path="/savings" element={<Planned title="Savings" />} /><Route path="*" element={<Planned title="Page not found" />} /></Routes></main></div><Navigation mobile /></div>
+  const [theme, setTheme] = useState<ThemeChoice>(readTheme)
+  const [systemDark, setSystemDark] = useState(systemPrefersDark)
+  const isDark = theme === 'dark' || (theme === 'system' && systemDark)
+  useEffect(() => {
+    saveTheme(theme)
+    applyTheme(theme)
+    if (theme !== 'system' || typeof window.matchMedia !== 'function') return
+    const query = window.matchMedia('(prefers-color-scheme: dark)')
+    const follow = () => { applyTheme('system', query.matches); setSystemDark(query.matches) }
+    query.addEventListener('change', follow)
+    return () => query.removeEventListener('change', follow)
+  }, [theme])
+  return <div className="app-shell"><aside className="sidebar"><Brand /><p className="tagline">A little space for your money</p><Navigation /><div className="sidebar-note"><span><img src={figmaIcon(20)} alt="" /></span><strong>Small steps count.</strong><small>One clear day at a time.</small></div></aside><div className="main-shell"><header className="topbar"><div className="mobile-brand"><Brand /></div><div className="breadcrumb">Your space <span>/</span> {page}</div><div className="profile"><button type="button" className="theme-toggle" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setTheme(isDark ? 'light' : 'dark')}>{isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}</button><span>Sarin Meas</span><b>SM</b></div></header><main className="page"><Routes><Route path="/" element={<Home ledger={ledger} setLedger={setLedger} />} /><Route path="/settings" element={<Settings ledger={ledger} setLedger={setLedger} theme={theme} setTheme={setTheme} />} /><Route path="/bills" element={<Planned title="Bills" />} /><Route path="/savings" element={<Planned title="Savings" />} /><Route path="*" element={<Planned title="Page not found" />} /></Routes></main></div><Navigation mobile /></div>
 }
 
 function Planned({ title }: { title: string }) {
@@ -101,7 +115,9 @@ function Planned({ title }: { title: string }) {
 
 function Summary({ balance, spent }: { balance: number; spent: number }) {
   const percent = Math.round(spent / demoBudget.monthlyBudget * 100)
-  return <section className="summary" aria-label="Monthly money summary"><div className="balance"><div className="balance-copy"><span>Available balance</span><strong>{money(balance)}</strong><p>Here’s what you have left to work with.</p></div><div className="balance-art" aria-hidden="true"><img src={figmaIcon(2)} alt="" /><i className="bubble small" /><i className="bubble medium" /><i className="bubble large" /></div></div><div className="plan"><div className="plan-values"><div><span>Spent this month</span><strong>{money(spent)}</strong></div><div><span>Monthly plan</span><strong>{money(demoBudget.monthlyBudget)}</strong></div></div><div className="progress-label"><span>Budget used</span><strong>{percent}%</strong></div><div className="progress"><span style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div></div></section>
+  const [hidden, setHidden] = useState(false)
+  const negative = balance < 0
+  return <section className="summary" aria-label="Monthly money summary"><div className={`balance${negative ? ' negative' : ''}`}><div className="balance-copy"><span>Available balance <button type="button" className="balance-toggle" aria-pressed={hidden} aria-label={hidden ? 'Show balance' : 'Hide balance'} onClick={() => setHidden(h => !h)}>{hidden ? <Eye size={16} aria-hidden="true" /> : <EyeOff size={16} aria-hidden="true" />}</button></span><strong data-testid="balance-amount">{hidden ? '$••••' : money(balance)}</strong><p>{hidden ? 'Balance hidden.' : negative ? 'You’re below zero. Spending is more than income.' : 'Here’s what you have left to work with.'}</p></div><div className="balance-art" aria-hidden="true"><img src={figmaIcon(2)} alt="" /><i className="bubble small" /><i className="bubble medium" /><i className="bubble large" /></div></div><div className="plan"><div className="plan-values"><div><span>Spent this month</span><strong>{money(spent)}</strong></div><div><span>Monthly plan</span><strong>{money(demoBudget.monthlyBudget)}</strong></div></div><div className="progress-label"><span>Budget used</span><strong>{percent}%</strong></div><div className="progress"><span style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div></div></section>
 }
 
 function displayDate(date: string, today: string) {
@@ -120,8 +136,7 @@ function Home({ ledger, setLedger }: { ledger: LedgerV2; setLedger: React.Dispat
   const navigate = useNavigate()
   const { entries, startingEntries, startingMonth, categories } = ledger
   const setEntries = (update: (entries: Transaction[]) => Transaction[]) => setLedger(old => ({ ...old, entries: update(old.entries) }))
-  const [dateFilter, setDateFilter] = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [filters, setFilters] = useState<EntryFilters>(NO_FILTERS)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<EntryForm>(() => emptyEntry(localDate()))
   const [errors, setErrors] = useState<FormErrors>({})
@@ -130,11 +145,22 @@ function Home({ ledger, setLedger }: { ledger: LedgerV2; setLedger: React.Dispat
   const today = localDate()
   const month = today.slice(0, 7)
   const summary = getSummary(entries, startingEntries, demoBudget.balance, startingMonth === month ? demoBudget.spent : 0, month)
-  const activeCategoryFilter = categoryFilter === 'all' || categories.some(category => category.id === categoryFilter) ? categoryFilter : 'all'
-  const visible = useMemo(() => entries.filter(entry => {
-    const dateMatches = dateFilter === 'all' || (dateFilter === 'today' && entry.date === today) || (dateFilter === 'yesterday' && displayDate(entry.date, today) === 'Yesterday')
-    return dateMatches && (activeCategoryFilter === 'all' || entry.categoryId === activeCategoryFilter)
-  }), [entries, dateFilter, activeCategoryFilter, today])
+  // Drop picks for categories deleted in Settings so they cannot hide every entry.
+  const activeFilters = useMemo(() => ({ ...filters, categoryIds: filters.categoryIds.filter(id => categories.some(category => category.id === id)) }), [filters, categories])
+  const visible = useMemo(() => filterEntries(entries, activeFilters, today), [entries, activeFilters, today])
+  const toggleCategory = (id: string) => setFilters(old => ({ ...old, categoryIds: old.categoryIds.includes(id) ? old.categoryIds.filter(item => item !== id) : [...old.categoryIds, id] }))
+  const categoryMenu = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    const close = (event: Event) => {
+      const menu = categoryMenu.current
+      if (menu?.open && (event instanceof KeyboardEvent ? event.key === 'Escape' : !menu.contains(event.target as Node))) menu.open = false
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close) }
+  }, [])
+  const pickedCount = activeFilters.categoryIds.length
+  const categoryLabel = pickedCount === 0 ? 'All categories' : pickedCount === 1 ? findCategory(categories, activeFilters.categoryIds[0]).name : `${pickedCount} categories`
 
   function open(entry?: Transaction) {
     setEditId(entry?.id ?? null)
@@ -169,7 +195,7 @@ function Home({ ledger, setLedger }: { ledger: LedgerV2; setLedger: React.Dispat
   const selectedCategory = form.categoryId ? findCategory(categories, form.categoryId) : null
   return <>
     <Summary {...summary} />
-    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in &amp; out</h2><Button className="add-entry" onClick={() => open()}><img src={figmaIcon(3)} alt="" />Add entry</Button></div><div className="filters"><div className="filter-group"><label className="filter"><img src={figmaIcon(4)} alt="" /><select aria-label="Filter by date" value={dateFilter} onChange={event => setDateFilter(event.target.value)}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select><img className="chevron" src={figmaIcon(5)} alt="" /></label><label className="filter"><select aria-label="Filter by category" value={activeCategoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select><img className="chevron" src={figmaIcon(5)} alt="" /></label></div><div className="month"><img src={figmaIcon(1)} alt="" /><span>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div></div><div className="entry-list">{visible.length ? visible.map(entry => {
+    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in &amp; out</h2><Button className="add-entry" onClick={() => open()}><img src={figmaIcon(3)} alt="" />Add entry</Button></div><div className="filters"><div className="filter-group"><label className="filter"><img src={figmaIcon(4)} alt="" /><select aria-label="Filter by date" value={filters.range} onChange={event => setFilters(old => ({ ...old, range: event.target.value as DateRange }))}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Choose dates…</option></select><img className="chevron" src={figmaIcon(5)} alt="" /></label><details ref={categoryMenu} className="filter category-filter"><summary aria-label={`Filter by category: ${categoryLabel}`}>{categoryLabel}<img className="chevron" src={figmaIcon(5)} alt="" /></summary><fieldset><legend className="sr-only">Show categories</legend>{categories.map(category => <label key={category.id}><input type="checkbox" checked={activeFilters.categoryIds.includes(category.id)} onChange={() => toggleCategory(category.id)} />{category.name}</label>)}</fieldset></details>{hasFilters(activeFilters) && <button type="button" className="clear-filters" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}</div><div className="month"><img src={figmaIcon(1)} alt="" /><span>{new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div></div>{filters.range === 'custom' && <div className="date-range"><label>From<input type="date" value={filters.from} onChange={event => setFilters(old => ({ ...old, from: event.target.value }))} /></label><label>To<input type="date" value={filters.to} onChange={event => setFilters(old => ({ ...old, to: event.target.value }))} /></label></div>}<div className="entry-list">{visible.length ? visible.map(entry => {
       const category = findCategory(categories, entry.categoryId)
       return <div className="entry" key={entry.id}>{entry.kind === 'income' ? <span className="entry-icon income"><img src={figmaIcon(9)} alt="" /></span> : <CategoryMark category={category} />}<div className="entry-info"><strong>{entry.title}</strong><small>{entry.kind === 'income' ? 'Income source' : category.name} · {displayDate(entry.date, today)}</small></div><strong className={`entry-amount ${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{money(entry.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${entry.title}`} onClick={() => open(entry)}><img src={figmaIcon(7)} alt="" /></button><button aria-label={`Delete ${entry.title}`} onClick={() => setDeleteTarget(entry)}><img src={figmaIcon(8)} alt="" /></button></div></div>
     }) : <p className="entry-empty">No entries match these filters.</p>}</div></section><aside className="ahead" aria-labelledby="ahead-title"><div className="ahead-heading"><h2 id="ahead-title">A little look ahead</h2><img src={figmaIcon(10)} alt="" /></div><div className="ahead-grid"><article className="ahead-card bill"><span className="ahead-icon"><img src={figmaIcon(11)} alt="" /></span><small>Coming up</small><h3>Phone bill</h3><p>Due Nov 3</p><strong className="bill-amount">$18.00</strong><Link to="/bills">View bills <img src={figmaIcon(12)} alt="" /></Link></article><article className="ahead-card savings"><span className="ahead-icon"><img src={figmaIcon(13)} alt="" /></span><small>Savings goal</small><h3>$180.00 <span>of $300.00</span></h3><div className="savings-progress"><span /></div><Link to="/savings">See your goal <img src={figmaIcon(14)} alt="" /></Link></article></div></aside></div>
@@ -196,7 +222,13 @@ function EntryDialog({ editId, form, setForm, errors, setErrors, categories, sel
 
 const emptyCategoryInput: CategoryInput = { name: '', icon: 'tag', color: 'rose' }
 
-function Settings({ ledger, setLedger }: { ledger: LedgerV2; setLedger: React.Dispatch<React.SetStateAction<LedgerV2>> }) {
+const themeOptions: { value: ThemeChoice; label: string; Icon: LucideIcon }[] = [
+  { value: 'light', label: 'Light', Icon: Sun },
+  { value: 'dark', label: 'Dark', Icon: Moon },
+  { value: 'system', label: 'Device setting', Icon: Monitor },
+]
+
+function Settings({ ledger, setLedger, theme, setTheme }: { ledger: LedgerV2; setLedger: React.Dispatch<React.SetStateAction<LedgerV2>>; theme: ThemeChoice; setTheme: (theme: ThemeChoice) => void }) {
   const [editor, setEditor] = useState<{ id: string | null; input: CategoryInput } | null>(null)
   const [errors, setErrors] = useState<CategoryErrors>({})
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
@@ -234,7 +266,7 @@ function Settings({ ledger, setLedger }: { ledger: LedgerV2; setLedger: React.Di
     setDeleteTarget(null)
   }
 
-  return <section className="settings-page" aria-labelledby="settings-title"><header className="settings-heading"><div><h1 id="settings-title">Make every expense feel familiar.</h1><p>Use ready-made categories or add your own, so each entry is easy to spot later.</p></div><Button className="add-category" onClick={() => openEditor()}><Plus size={17} />Add category</Button></header><div className="category-panel" id="categories"><div className="category-panel-heading"><div><h2>Expense categories</h2><p>{ledger.categories.length} categories · {customCount} personal</p></div><span className="settings-note">Saved in this browser</span></div><div className="category-list">{ledger.categories.map(category => <div className="category-row" key={category.id}><CategoryMark category={category} /><div className="category-row-copy"><strong>{category.name}</strong><small>{category.source === 'system' ? 'Ready-made' : 'Personal category'}</small></div>{category.source === 'custom' && <div className="category-actions"><button aria-label={`Edit ${category.name}`} onClick={() => openEditor(category)}><Pencil size={16} /></button><button aria-label={`Delete ${category.name}`} onClick={() => askDelete(category)}><Trash2 size={16} /></button></div>}</div>)}</div></div><p className="settings-footnote">Ready-made categories stay available so expenses always have a dependable home. Uncategorized is used when no better match exists.</p>
+  return <section className="settings-page" aria-labelledby="settings-title"><header className="settings-heading"><div><h1 id="settings-title">Make every expense feel familiar.</h1><p>Use ready-made categories or add your own, so each entry is easy to spot later.</p></div><Button className="add-category" onClick={() => openEditor()}><Plus size={17} />Add category</Button></header><div className="category-panel" id="categories"><div className="category-panel-heading"><div><h2>Expense categories</h2><p>{ledger.categories.length} categories · {customCount} personal</p></div><span className="settings-note">Saved in this browser</span></div><div className="category-list">{ledger.categories.map(category => <div className="category-row" key={category.id}><CategoryMark category={category} /><div className="category-row-copy"><strong>{category.name}</strong><small>{category.source === 'system' ? 'Ready-made' : 'Personal category'}</small></div>{category.source === 'custom' && <div className="category-actions"><button aria-label={`Edit ${category.name}`} onClick={() => openEditor(category)}><Pencil size={16} /></button><button aria-label={`Delete ${category.name}`} onClick={() => askDelete(category)}><Trash2 size={16} /></button></div>}</div>)}</div></div><p className="settings-footnote">Ready-made categories stay available so expenses always have a dependable home. Uncategorized is used when no better match exists.</p><div className="category-panel appearance-panel" id="appearance"><div className="category-panel-heading"><div><h2 id="appearance-title">Appearance</h2><p>Choose how Chamnay looks on this device.</p></div></div><div className="theme-choices" role="group" aria-labelledby="appearance-title">{themeOptions.map(({ value, label, Icon }) => <button key={value} type="button" aria-pressed={theme === value} onClick={() => setTheme(value)}><Icon size={18} aria-hidden="true" />{label}</button>)}</div></div>
     {editor && <CategoryEditor editor={editor} setEditor={setEditor} errors={errors} setErrors={setErrors} onClose={() => setEditor(null)} onSubmit={saveCategory} />}
     {deleteTarget && <Modal onClose={() => setDeleteTarget(null)} labelledBy="delete-category-title" describedBy="delete-category-description" role="alertdialog" className="confirm-dialog"><h2 id="delete-category-title">Where should these expenses go?</h2><p id="delete-category-description">“{deleteTarget.name}” is used by {affectedCount} {affectedCount === 1 ? 'expense' : 'expenses'}. Choose a new category before deleting it.</p><label className="reassign-field">Move expenses to<select data-autofocus value={destinationId} onChange={event => setDestinationId(event.target.value)}>{ledger.categories.filter(category => category.id !== deleteTarget.id).map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><div className="confirm-actions"><Button type="button" onClick={() => setDeleteTarget(null)}>Cancel</Button><Button type="button" className="delete-confirm" onClick={confirmCategoryDelete}>Move and delete</Button></div></Modal>}
   </section>

@@ -40,7 +40,12 @@ a { color:inherit }
 .balance-copy { position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-start; white-space:nowrap }
 .balance-copy>span { color:#6e5153; font-size:13px }
 .balance-copy strong { margin-top:7px; color:#3b3033; font-size:57.6px; line-height:1.1; font-weight:600; letter-spacing:-2.3px }
-.balance-copy p { margin:12px 0 0; color:#6b5354; font-size:12px }
+.balance-copy p { margin:12px 0 0; color:#6b5354; font-size:12px; white-space:normal }
+.balance-copy>span { display:flex; align-items:center; gap:6px }
+.balance-toggle { display:inline-flex; padding:4px; border:0; border-radius:6px; background:transparent; color:inherit; cursor:pointer }
+.balance-toggle:hover, .balance-toggle:focus-visible { background:rgba(0,0,0,.07) }
+.balance.negative { background:#f6d6d0 }
+.balance.negative .balance-copy strong, .balance.negative .balance-copy p { color:#a3302a }
 .balance-art { position:absolute; width:190px; height:224px; right:0; top:0 }
 .balance-art>img { position:absolute; width:25px; height:25px; top:34px; right:36px; transform:rotate(14deg) }
 .bubble { position:absolute; display:block; border:2px solid #b77681; border-radius:50%; background:#f5b297 }
@@ -68,6 +73,23 @@ a { color:inherit }
 .filter>img:first-child { width:16px; height:16px }
 .filter .chevron { width:14px; height:14px }
 .filter select { min-width:0; max-width:140px; appearance:none; border:0; outline:0; background:transparent; color:#5c5359; font-size:12px; cursor:pointer }
+.filter-group { flex-wrap:wrap }
+.category-filter { position:relative }
+.category-filter summary { display:flex; align-items:center; gap:8px; height:100%; list-style:none; color:#5c5359; font-size:12px; cursor:pointer; white-space:nowrap }
+.category-filter summary::-webkit-details-marker { display:none }
+.category-filter fieldset { position:absolute; z-index:6; top:calc(100% + 6px); left:0; min-width:190px; max-height:260px; overflow-y:auto; margin:0; padding:6px; border:1px solid var(--line); border-radius:10px; background:var(--paper); box-shadow:0 12px 30px #352f3524 }
+.category-filter fieldset label { display:flex; align-items:center; gap:9px; min-height:36px; padding:0 8px; border-radius:7px; color:var(--ink); font-size:12px; cursor:pointer }
+.category-filter fieldset label:hover { background:#f6eeec }
+.category-filter input { width:16px; height:16px; accent-color:#9f6476 }
+.clear-filters { height:35px; padding:0 12px; border:0; border-radius:9px; background:transparent; color:#70495b; font-size:12px; text-decoration:underline; text-underline-offset:3px }
+.date-range { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px }
+.date-range label { display:flex; align-items:center; gap:8px; color:var(--soft); font-size:12px }
+.date-range input { height:35px; padding:0 9px; border:1px solid var(--line); border-radius:9px; background:var(--paper); color:var(--ink); font-size:12px }
+.dark .category-filter summary { color:var(--soft) }
+.dark .category-filter fieldset { box-shadow:0 12px 30px #0008 }
+.dark .category-filter fieldset label:hover { background:#33292e }
+.dark .category-filter input { accent-color:#e3a9b8 }
+.dark .clear-filters { color:#f0b9c8 }
 .entry-list { margin-top:12px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--paper) }
 .entry { min-height:76px; display:flex; align-items:center; gap:12px; padding:12px 16px; border-top:1px solid #f0e9e4 }
 .entry:first-child { border-top:0 }
@@ -215,3 +237,73 @@ a { color:inherit }
   .icon-choices { grid-template-columns:repeat(4,1fr) }
   .settings-heading { gap:16px }
 }
+
+.appearance-panel { margin-top:24px }
+.theme-toggle { display:grid; place-items:center; width:40px; height:40px; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--paper); color:var(--ink) }
+.theme-toggle:hover { background:#f6eeec }
+.dark .theme-toggle:hover { background:#33292e }
+.theme-choices { display:flex; flex-wrap:wrap; gap:10px; padding:18px 24px 22px }
+.theme-choices button { display:flex; align-items:center; gap:8px; min-height:44px; padding:0 16px; border:1px solid var(--line); border-radius:11px; background:var(--paper); color:var(--ink); font-size:13px }
+.theme-choices button:hover { background:#f8f1ef }
+.theme-choices button[aria-pressed="true"] { border-color:#9f6476; background:#f2dde2; color:#65384a; box-shadow:0 0 0 2px #ead0d7 }
+@media (max-width:700px) { .theme-choices { padding:14px 16px 18px } .theme-choices button { flex:1 1 140px } }
+
+/* Dark mode (CP-12): .dark is set on <html> by src/lib/theme.ts */
+.dark { --cream:#1b1719; --paper:#252023; --line:#3b3237; --ink:#f2eaed; --soft:#b9adb3; --rose:#d895a5 }
+.dark ::selection { background:#6b3d4b; color:#fff }
+.dark * { scrollbar-color:#6b5560 #1b1719 }
+.dark :focus-visible { outline-color:#e3a9b8 }
+.dark .tagline, .dark .breadcrumb, .dark .month, .dark .filter select, .dark .entry-info small, .dark .sample-note, .dark .field-help, .dark .category-row-copy small, .dark .settings-footnote, .dark .entry-dialog label, .dark .category-label-row, .dark .choice-field legend, .dark .reassign-field { color:var(--soft) }
+.dark .breadcrumb span { color:#7d6f76 }
+.dark .nav-link { color:#c4b8be }
+.dark .nav-link:hover, .dark .entry-actions button:hover, .dark .category-actions button:hover, .dark .icon-choices button:hover, .dark .theme-choices button:hover { background:#33292e }
+.dark .nav-link.active { background:#43303a; color:#f3c9d5 }
+.dark .profile b { background:#4a3540; color:#f3dbe4 }
+.dark .sidebar-note>span { background:#4a3d2b }
+.dark .balance { background:#3d3226 }
+.dark .balance-copy>span, .dark .balance-copy p { color:#d9c6b4 }
+.dark .balance-copy strong, .dark .plan-values strong, .dark .progress-label strong, .dark .entry-info strong, .dark .entry-amount, .dark .ahead-card h3, .dark .category-panel-heading h2, .dark .category-row-copy strong, .dark .category-preview strong, .dark .settings-heading h1 { color:var(--ink) }
+.dark .balance-toggle:hover, .dark .balance-toggle:focus-visible { background:rgba(255,255,255,.1) }
+.dark .balance.negative { background:#4a2422 }
+.dark .balance.negative .balance-copy strong, .dark .balance.negative .balance-copy p { color:#ffb4a9 }
+.dark .bubble { border-color:#c98593; background:#b8735c }
+.dark .plan { background:#2c2620; border-color:#4a3d2b }
+.dark .plan-values span, .dark .progress-label { color:#c9b8a8 }
+.dark .progress { background:#4a3f36 }
+.dark .add-entry, .dark .add-category, .dark .save-entry { color:#2a1a21 !important }
+.dark .entry { border-color:#33292e }
+.dark .entry-icon { background:#3d2e2a }
+.dark .entry-icon.income { background:#2c3540 }
+.dark .entry-amount.income { color:#a9c2e0 }
+.dark .category-mark { color:#f2eaed }
+.dark .category-mark[data-color="rose"], .dark .color-choices button[data-color="rose"] span { background:#5a3540 }
+.dark .category-mark[data-color="peach"], .dark .color-choices button[data-color="peach"] span { background:#5c3a2c }
+.dark .category-mark[data-color="amber"], .dark .color-choices button[data-color="amber"] span { background:#55452a }
+.dark .category-mark[data-color="sage"], .dark .color-choices button[data-color="sage"] span { background:#33463a }
+.dark .category-mark[data-color="blue"], .dark .color-choices button[data-color="blue"] span { background:#2e3d52 }
+.dark .category-mark[data-color="lavender"], .dark .color-choices button[data-color="lavender"] span { background:#43365a }
+.dark .ahead-card.bill { background:#3a2a2c }
+.dark .ahead-card.savings { background:#262f3a }
+.dark .ahead-icon { background:#4a3a3c }
+.dark .savings .ahead-icon { background:#36414f }
+.dark .ahead-card small, .dark .ahead-card p { color:#d3b8be }
+.dark .savings small, .dark .savings h3 span { color:#a9b8cb }
+.dark .ahead-card a, .dark .planned a, .dark .manage-categories-link { color:#f0b9c8 }
+.dark .savings a { color:#a9c2e0 }
+.dark .savings-progress { background:#3a4757 }
+.dark .dialog-backdrop { background:#000000a0 }
+.dark .entry-dialog { box-shadow:0 20px 70px #0008 }
+.dark .dialog-heading button, .dark .category-actions button { color:var(--ink) }
+.dark .entry-dialog input, .dark .entry-dialog select, .dark .reassign-field select, .dark .icon-choices button { background:#1b1719; color:var(--ink) }
+.dark .entry-dialog input:focus, .dark .entry-dialog select:focus { box-shadow:0 0 0 3px #5a3540 }
+.dark .icon-choices button[aria-pressed="true"], .dark .theme-choices button[aria-pressed="true"] { border-color:#e3a9b8; background:#5a3540; color:#fde8ee; box-shadow:0 0 0 2px #7a4a58 }
+.dark .color-choices button[aria-pressed="true"] { border-color:#e3a9b8; box-shadow:0 0 0 2px #7a4a58 }
+.dark .color-choices button span { border-color:#ffffff26 }
+.dark .category-preview, .dark .settings-note { background:#33292e; color:var(--soft) }
+.dark .category-row, .dark .category-row:nth-child(odd) { border-color:#33292e }
+.dark .field-error { color:#ff9fb0 }
+.dark .entry-dialog [aria-invalid="true"] { border-color:#ff9fb0 }
+.dark .delete-confirm { background:#c4566b !important }
+/* Figma icons are drawn in mauve (#965F73); lift them so they read on dark surfaces. */
+.dark img[src^="/figma/"] { filter:brightness(1.7) saturate(.8) }
+.dark .brand-mark img { filter:none }

@@ -6,6 +6,16 @@
     <meta name="theme-color" content="#fcfaf7" />
     <meta name="description" content="Chamnay — a clearer view of your money." />
     <title>Chamnay — Budget planner</title>
+    <script>
+      // Apply the saved theme before first paint so dark mode does not flash light. Mirrors src/lib/theme.ts.
+      try {
+        var t = localStorage.getItem('chamnay.theme')
+        if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

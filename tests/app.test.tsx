@@ -83,3 +83,94 @@ describe('expense category experience', () => {
     confirm.mockRestore()
   })
 })
+
+describe('current balance', () => {
+  it('hides and shows the balance, and flags a balance below zero', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    const amount = screen.getByTestId('balance-amount')
+    expect(amount).toHaveTextContent('$384.50')
+    await user.click(screen.getByRole('button', { name: 'Hide balance' }))
+    expect(amount).toHaveTextContent('$••••')
+    await user.click(screen.getByRole('button', { name: 'Show balance' }))
+    expect(amount).toHaveTextContent('$384.50')
+
+    await user.click(screen.getByRole('button', { name: /add entry/i }))
+    const dialog = screen.getByRole('dialog', { name: /add entry/i })
+    await user.type(within(dialog).getByLabelText('Title'), 'Laptop')
+    await user.type(within(dialog).getByLabelText('Amount'), '500')
+    await user.selectOptions(within(dialog).getByLabelText('Category'), 'food')
+    await user.click(within(dialog).getByRole('button', { name: /save entry/i }))
+    expect(amount).toHaveTextContent('−$115.50')
+    expect(screen.getByText(/below zero/i)).toBeInTheDocument()
+  })
+})
+
+describe('appearance', () => {
+  it('switches to dark mode at once and keeps the choice after reopening', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderApp('/settings')
+    expect(screen.getByRole('button', { name: 'Device setting' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Dark' }))
+    expect(document.documentElement).toHaveClass('dark')
+    expect(localStorage.getItem('chamnay.theme')).toBe('dark')
+
+    unmount()
+    renderApp('/settings')
+    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
+    expect(document.documentElement).toHaveClass('dark')
+
+    await user.click(screen.getByRole('button', { name: 'Light' }))
+    expect(document.documentElement).not.toHaveClass('dark')
+  })
+
+  it('switches between light and dark from the top bar', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(screen.getByRole('button', { name: 'Switch to dark mode' }))
+    expect(document.documentElement).toHaveClass('dark')
+    await user.click(screen.getByRole('button', { name: 'Switch to light mode' }))
+    expect(document.documentElement).not.toHaveClass('dark')
+    expect(localStorage.getItem('chamnay.theme')).toBe('light')
+  })
+})
+
+describe('spending history filters', () => {
+  it('filters by several categories, shows a message when nothing matches, and clears all filters', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    const list = () => document.querySelector('.entry-list') as HTMLElement
+    const total = within(list()).getAllByRole('button', { name: /^Edit / }).length
+    await user.click(screen.getByText('All categories'))
+    await user.click(screen.getByRole('checkbox', { name: 'Food' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Transport' }))
+    expect(within(list()).getByText('Lunch at Green Bowl')).toBeInTheDocument()
+    expect(within(list()).getByText('Tuk-tuk ride')).toBeInTheDocument()
+    expect(within(list()).queryByText('Monthly allowance')).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Filter by date'), 'custom')
+    await user.type(screen.getByLabelText('From'), '2000-01-01')
+    await user.type(screen.getByLabelText('To'), '2000-01-02')
+    expect(screen.getByText('No entries match these filters.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(within(list()).getAllByRole('button', { name: /^Edit / })).toHaveLength(total)
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+  })
+
+  it('puts a back-dated entry below newer ones', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(screen.getByRole('button', { name: /add entry/i }))
+    const dialog = screen.getByRole('dialog', { name: /add entry/i })
+    await user.type(within(dialog).getByLabelText('Title'), 'Old receipt')
+    await user.type(within(dialog).getByLabelText('Amount'), '2')
+    await user.selectOptions(within(dialog).getByLabelText('Category'), 'food')
+    const date = within(dialog).getByLabelText('Date')
+    await user.clear(date)
+    await user.type(date, '2000-01-01')
+    await user.click(within(dialog).getByRole('button', { name: /save entry/i }))
+    const titles = [...document.querySelectorAll('.entry-info strong')].map(node => node.textContent)
+    expect(titles.at(-1)).toBe('Old receipt')
+  })
+})

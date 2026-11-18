@@ -47,3 +47,45 @@ export function getSummary(entries: Transaction[], startingEntries: Transaction[
     spent: Math.round((startingSpent + monthlyExpenseDelta) * 100) / 100,
   }
 }
+
+export type DateRange = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'
+export const DATE_RANGE_LABELS: Record<DateRange, string> = {
+  all: 'All dates',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  week: 'This week',
+  month: 'This month',
+  custom: 'Choose dates…',
+}
+export type EntryFilters = { range: DateRange; from: string; to: string; categoryIds: string[] }
+export const NO_FILTERS: EntryFilters = { range: 'all', from: '', to: '', categoryIds: [] }
+
+function shiftDays(date: string, days: number) {
+  const day = new Date(`${date}T12:00:00`)
+  day.setDate(day.getDate() + days)
+  return localDate(day)
+}
+
+// Inclusive [start, end] for a range; '' means no bound. Weeks run Monday to Sunday.
+export function rangeBounds(filters: EntryFilters, today: string): [string, string] {
+  switch (filters.range) {
+    case 'today': return [today, today]
+    case 'yesterday': { const day = shiftDays(today, -1); return [day, day] }
+    case 'week': { const start = shiftDays(today, -((new Date(`${today}T12:00:00`).getDay() + 6) % 7)); return [start, shiftDays(start, 6)] }
+    case 'month': return [`${today.slice(0, 7)}-01`, `${today.slice(0, 7)}-31`]
+    case 'custom': return filters.from && filters.to && filters.from > filters.to ? [filters.to, filters.from] : [filters.from, filters.to]
+    default: return ['', '']
+  }
+}
+
+// Newest date first; entries on the same date keep their saved order (newest added first).
+export function filterEntries(entries: Transaction[], filters: EntryFilters, today: string): Transaction[] {
+  const [start, end] = rangeBounds(filters, today)
+  return entries
+    .filter(entry => (!start || entry.date >= start) && (!end || entry.date <= end)
+      && (!filters.categoryIds.length || (entry.categoryId !== null && filters.categoryIds.includes(entry.categoryId))))
+    .sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export const hasFilters = (filters: EntryFilters) =>
+  filters.range !== 'all' || filters.categoryIds.length > 0

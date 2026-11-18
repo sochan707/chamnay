@@ -5,7 +5,7 @@ import { transformWithOxc } from 'vite'
 
 const source = readFileSync(new URL('../src/lib/expenses.ts', import.meta.url), 'utf8')
 const { code } = await transformWithOxc(source, 'expenses.ts')
-const { validateEntry, saveEntry, deleteEntry, getSummary } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
+const { validateEntry, saveEntry, deleteEntry, getSummary, filterEntries, rangeBounds, NO_FILTERS } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
 
 const base = [
   { id: 'income', title: 'Allowance', categoryId: null, date: '2026-11-01', amount: 200, kind: 'income' },
@@ -44,4 +44,42 @@ test('income changes balance without changing spending', () => {
   const added = saveEntry(base, { ...form, kind: 'income', categoryId: '', amount: '25' }, 'extra-income')
   assert.equal(added[0].categoryId, null)
   assert.deepEqual(summary(added), { balance: 325, spent: 100 })
+})
+
+
+test('lists entries newest date first, keeping saved order within a day', () => {
+  const entries = [
+    { id: 'old', title: 'Old', categoryId: 'food', date: '2026-11-01', amount: 1, kind: 'expense' },
+    { id: 'late', title: 'Late add', categoryId: 'food', date: '2026-11-10', amount: 1, kind: 'expense' },
+    { id: 'mid', title: 'Mid', categoryId: 'food', date: '2026-11-05', amount: 1, kind: 'expense' },
+    { id: 'late2', title: 'Same day', categoryId: 'food', date: '2026-11-10', amount: 1, kind: 'expense' },
+  ]
+  assert.deepEqual(filterEntries(entries, NO_FILTERS, '2026-11-17').map(e => e.id), ['late', 'late2', 'mid', 'old'])
+})
+
+test('date ranges: this week runs Monday to Sunday, this month, and chosen dates in either order', () => {
+  // 2026-11-17 is a Tuesday
+  assert.deepEqual(rangeBounds({ ...NO_FILTERS, range: 'week' }, '2026-11-17'), ['2026-11-16', '2026-11-22'])
+  assert.deepEqual(rangeBounds({ ...NO_FILTERS, range: 'week' }, '2026-11-22'), ['2026-11-16', '2026-11-22'])
+  assert.deepEqual(rangeBounds({ ...NO_FILTERS, range: 'month' }, '2026-11-17'), ['2026-11-01', '2026-11-31'])
+  assert.deepEqual(rangeBounds({ ...NO_FILTERS, range: 'custom', from: '2026-11-10', to: '2026-11-02' }, '2026-11-17'), ['2026-11-02', '2026-11-10'])
+  const entries = [
+    { id: 'a', title: 'A', categoryId: 'food', date: '2026-11-15', amount: 1, kind: 'expense' },
+    { id: 'b', title: 'B', categoryId: 'food', date: '2026-11-16', amount: 1, kind: 'expense' },
+    { id: 'c', title: 'C', categoryId: 'food', date: '2026-10-31', amount: 1, kind: 'expense' },
+  ]
+  assert.deepEqual(filterEntries(entries, { ...NO_FILTERS, range: 'week' }, '2026-11-17').map(e => e.id), ['b'])
+  assert.deepEqual(filterEntries(entries, { ...NO_FILTERS, range: 'month' }, '2026-11-17').map(e => e.id), ['b', 'a'])
+  assert.deepEqual(filterEntries(entries, { ...NO_FILTERS, range: 'custom', from: '2026-11-01', to: '' }, '2026-11-17').map(e => e.id), ['b', 'a'])
+})
+
+test('category filter shows entries from any picked category and leaves out income', () => {
+  const entries = [
+    { id: 'food', title: 'Food', categoryId: 'food', date: '2026-11-03', amount: 1, kind: 'expense' },
+    { id: 'bus', title: 'Bus', categoryId: 'transport', date: '2026-11-02', amount: 1, kind: 'expense' },
+    { id: 'gift', title: 'Gift', categoryId: 'gifts', date: '2026-11-01', amount: 1, kind: 'expense' },
+    { id: 'pay', title: 'Pay', categoryId: null, date: '2026-11-04', amount: 1, kind: 'income' },
+  ]
+  assert.deepEqual(filterEntries(entries, { ...NO_FILTERS, categoryIds: ['food', 'transport'] }, '2026-11-17').map(e => e.id), ['food', 'bus'])
+  assert.equal(filterEntries(entries, { ...NO_FILTERS, categoryIds: ['food'], range: 'today' }, '2026-11-17').length, 0)
 })

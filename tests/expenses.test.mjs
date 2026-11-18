@@ -5,14 +5,14 @@ import { transformWithOxc } from 'vite'
 
 const source = readFileSync(new URL('../src/lib/expenses.ts', import.meta.url), 'utf8')
 const { code } = await transformWithOxc(source, 'expenses.ts')
-const { validateEntry, saveEntry, deleteEntry, getSummary, newestFirst } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
+const { validateEntry, saveEntry, deleteEntry, getSummary, monthlySpending, newestFirst } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
 
 const base = [
   { id: 'income', title: 'Allowance', category: 'Income', date: '2026-11-01', amount: 200, kind: 'income' },
   { id: 'expense', title: 'Lunch', category: 'Food', date: '2026-11-02', amount: 10, kind: 'expense' },
 ]
 const form = { title: 'Coffee', category: 'Food', amount: '4.50', date: '2026-11-04', kind: 'expense' }
-const summary = entries => getSummary(entries, base, 300, 100, '2026-11')
+const summary = entries => getSummary(entries, base, 300, '2026-11')
 
 test('validates blank details, invalid dates, and amounts that are not above zero', () => {
   assert.deepEqual(validateEntry({ ...form, title: ' ', category: '', amount: '0', date: '' }), {
@@ -25,24 +25,31 @@ test('validates blank details, invalid dates, and amounts that are not above zer
 
 test('adding, editing, and deleting an expense update balance and monthly spending', () => {
   const added = saveEntry(base, form, 'new')
-  assert.deepEqual(summary(added), { balance: 295.5, spent: 104.5 })
+  assert.deepEqual(summary(added), { balance: 295.5, spent: 14.5 })
   const edited = saveEntry(added, { ...form, title: 'Dinner', amount: '8', category: 'Other', date: '2026-11-05' }, 'new')
   assert.equal(edited.find(item => item.id === 'new').title, 'Dinner')
   assert.equal(edited.find(item => item.id === 'new').category, 'Other')
   assert.equal(edited.find(item => item.id === 'new').date, '2026-11-05')
-  assert.deepEqual(summary(edited), { balance: 292, spent: 108 })
-  assert.deepEqual(summary(deleteEntry(edited, 'new')), { balance: 300, spent: 100 })
+  assert.deepEqual(summary(edited), { balance: 292, spent: 18 })
+  assert.deepEqual(summary(deleteEntry(edited, 'new')), { balance: 300, spent: 10 })
 })
 
 test('editing an existing expense and moving an expense to another month recalculate totals', () => {
   const edited = saveEntry(base, { ...form, amount: '6', date: '2026-10-20' }, 'expense')
-  assert.deepEqual(summary(edited), { balance: 304, spent: 90 })
-  assert.deepEqual(summary(deleteEntry(base, 'expense')), { balance: 310, spent: 90 })
+  assert.deepEqual(summary(edited), { balance: 304, spent: 0 })
+  assert.deepEqual(summary(deleteEntry(base, 'expense')), { balance: 310, spent: 0 })
 })
 
 test('income changes balance without changing spending', () => {
   const added = saveEntry(base, { ...form, kind: 'income', category: 'Income', amount: '25' }, 'extra-income')
-  assert.deepEqual(summary(added), { balance: 325, spent: 100 })
+  assert.deepEqual(summary(added), { balance: 325, spent: 10 })
+})
+
+test('home summary and Spending use the same recorded expense total', () => {
+  const entries = saveEntry(base, form, 'new')
+  assert.equal(summary(entries).spent, monthlySpending(entries, '2026-11'))
+  assert.equal(monthlySpending(entries, '2026-10'), 0)
+  assert.equal(monthlySpending(deleteEntry(entries, 'expense'), '2026-11'), 4.5)
 })
 
 test('history shows saved entries newest first without changing their stored order', () => {

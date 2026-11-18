@@ -55,7 +55,7 @@ a { color:inherit }
 .progress span { display:block; height:100%; border-radius:inherit; background:#c78997 }
 .lower { display:grid; grid-template-columns:minmax(0,1fr) 266px; gap:35px; margin-top:28px }
 .activity-heading { display:flex; justify-content:space-between; align-items:center; gap:12px }
-.activity-actions { display:flex; align-items:center; gap:16px }
+.activity-footer { display:flex; justify-content:flex-end; margin-top:12px }
 .view-history { display:inline-flex; align-items:center; gap:5px; color:#70495b; font-size:12px; font-weight:500; text-decoration:underline; text-underline-offset:3px; white-space:nowrap }
 .view-history:hover { color:#533143 }
 .history-intro { margin:10px 0 28px }
@@ -64,7 +64,7 @@ a { color:inherit }
 .history-layout { width:100%; max-width:900px }
 .history-layout .activity-heading { margin-bottom:4px }
 .history-layout .entry-amount { font-variant-numeric:tabular-nums }
-@media (max-width:700px) { .activity-heading { flex-wrap:wrap } .activity-actions { width:100%; justify-content:space-between } .history-layout .activity-actions { width:auto } }
+@media (max-width:700px) { .activity-heading { flex-wrap:wrap } }
 @media (max-width:375px) { .filters { flex-wrap:wrap } .month { margin-left:auto } }
 .activity h2,.ahead h2 { margin:0; font-size:19px; line-height:22px; letter-spacing:-.48px; font-weight:600 }
 .add-entry { flex:none; height:38px !important; min-height:38px; padding:0 15px !important; border-radius:10px !important; background:#c78997 !important; color:#35232c !important; font-size:12px !important; font-weight:500 !important; gap:8px !important }

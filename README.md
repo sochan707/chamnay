@@ -30,4 +30,4 @@ npm run lint
 npm run build
 ```
 
-The dashboard starts with sample figures and transactions in `src/data/demo.ts`. Entry changes are saved in this browser's local storage and affect the displayed balance and monthly spending total. There is no account or server sync.
+Home and Spending use the same transaction ledger. Adding, editing, or deleting an expense on either page updates both pages' monthly spending totals and the Home balance. The prototype starts with sample transactions in `src/data/demo.ts` and saves changes in this browser's local storage. There is no account or server sync.

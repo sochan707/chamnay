@@ -23,7 +23,6 @@ export const demoTransactions: Transaction[] = [
 export const demoBudget = {
   balance: 384.5,
   monthlyBudget: 500,
-  spent: 115.5,
   savingsTarget: 300,
   savingsCurrent: 180,
 }

@@ -10,7 +10,7 @@ import './home.css'
 const icon = (n: number) => `/figma/icon-${n}.svg`
 const money = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n).toFixed(2)}`
 const storageKey = 'chamnay.ledger.v1'
-type Ledger = { entries: Transaction[]; startingEntries: Transaction[]; startingMonth: string }
+type Ledger = { entries: Transaction[]; startingEntries: Transaction[] }
 const categories = ['Food', 'Transport', 'Bills', 'Shopping', 'Income', 'Other']
 const nav = [
   { label: 'Home', to: '/', icon: 16 },
@@ -29,10 +29,10 @@ function readLedger(): Ledger {
     const saved = localStorage.getItem(storageKey)
     if (saved) {
       const parsed: unknown = JSON.parse(saved)
-      if (parsed && typeof parsed === 'object' && 'entries' in parsed && 'startingEntries' in parsed && 'startingMonth' in parsed && isTransactions(parsed.entries) && isTransactions(parsed.startingEntries) && typeof parsed.startingMonth === 'string') return parsed as Ledger
+      if (parsed && typeof parsed === 'object' && 'entries' in parsed && 'startingEntries' in parsed && isTransactions(parsed.entries) && isTransactions(parsed.startingEntries)) return { entries: parsed.entries, startingEntries: parsed.startingEntries }
     }
   } catch { /* Browser storage may be disabled. */ }
-  return { entries: demoTransactions, startingEntries: demoTransactions, startingMonth: localDate().slice(0, 7) }
+  return { entries: demoTransactions, startingEntries: demoTransactions }
 }
 
 function Brand() {
@@ -44,9 +44,14 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
 }
 
 function Shell() {
+  const [ledger, setLedger] = useState<Ledger>(readLedger)
+  const setEntries = (update: (entries: Transaction[]) => Transaction[]) => setLedger(old => ({ ...old, entries: update(old.entries) }))
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify(ledger)) } catch { /* Browser storage may be disabled. */ }
+  }, [ledger])
   const location = useLocation()
   const page = nav.find(item => item.to === location.pathname)?.label ?? 'Home'
-  return <div className={`app-shell${location.pathname === '/history' ? ' history-shell' : ''}`}><aside className="sidebar"><Brand /><p className="tagline">{location.pathname === '/history' ? 'Your space' : 'A little space for your money'}</p><Navigation /><div className="sidebar-note"><span><img src={icon(20)} alt="" /></span><strong>{location.pathname === '/history' ? 'Little steps add up.' : 'Small steps count.'}</strong><small>{location.pathname === '/history' ? 'See your spending story grow day by day.' : 'One clear day at a time.'}</small></div></aside><div className="main-shell"><header className="topbar"><div className="mobile-brand"><Brand /></div><div className="breadcrumb">Your space <span>/</span> {page}</div><div className="profile"><span>Sarin Meas</span><b>SM</b></div></header><main className="page"><Routes><Route path="/" element={<Home />} /><Route path="/history" element={<Home historyOnly />} />{nav.slice(2).map(item => <Route key={item.to} path={item.to} element={<Planned title={item.label} />} />)}<Route path="*" element={<Planned title="Page not found" />} /></Routes></main></div><Navigation mobile /></div>
+  return <div className="app-shell"><aside className="sidebar"><Brand /><p className="tagline">A little space for your money</p><Navigation /><div className="sidebar-note"><span><img src={icon(20)} alt="" /></span><strong>Small steps count.</strong><small>One clear day at a time.</small></div></aside><div className="main-shell"><header className="topbar"><div className="mobile-brand"><Brand /></div><div className="breadcrumb">Your space <span>/</span> {page}</div><div className="profile"><span>Sarin Meas</span><b>SM</b></div></header><main className="page"><Routes><Route path="/" element={<Home ledger={ledger} setEntries={setEntries} />} /><Route path="/history" element={<Home historyOnly ledger={ledger} setEntries={setEntries} />} />{nav.slice(2).map(item => <Route key={item.to} path={item.to} element={<Planned title={item.label} />} />)}<Route path="*" element={<Planned title="Page not found" />} /></Routes></main></div><Navigation mobile /></div>
 }
 
 function Planned({ title }: { title: string }) {
@@ -66,10 +71,8 @@ function displayDate(date: string, today: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function Home({ historyOnly = false }: { historyOnly?: boolean }) {
-  const [ledger, setLedger] = useState<Ledger>(readLedger)
-  const { entries, startingEntries, startingMonth } = ledger
-  const setEntries = (update: (entries: Transaction[]) => Transaction[]) => setLedger(old => ({ ...old, entries: update(old.entries) }))
+function Home({ historyOnly = false, ledger, setEntries }: { historyOnly?: boolean; ledger: Ledger; setEntries: (update: (entries: Transaction[]) => Transaction[]) => void }) {
+  const { entries, startingEntries } = ledger
   const [dateFilter, setDateFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [editId, setEditId] = useState<string | null>(null)
@@ -79,17 +82,13 @@ function Home({ historyOnly = false }: { historyOnly?: boolean }) {
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const today = localDate()
   const month = today.slice(0, 7)
-  const summary = getSummary(entries, startingEntries, demoBudget.balance, startingMonth === month ? demoBudget.spent : 0, month)
+  const summary = getSummary(entries, startingEntries, demoBudget.balance, month)
   const visible = useMemo(() => newestFirst(entries.filter(entry => {
     if (historyOnly && entry.kind !== 'expense') return false
     const dateMatches = dateFilter === 'all' || (dateFilter === 'today' && entry.date === today) || (dateFilter === 'yesterday' && displayDate(entry.date, today) === 'Yesterday')
     return dateMatches && (categoryFilter === 'all' || entry.category === categoryFilter)
   })), [entries, dateFilter, categoryFilter, today, historyOnly])
   const shown = historyOnly ? visible : visible.slice(0, 4)
-
-  useEffect(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(ledger)) } catch { /* Browser storage may be disabled. */ }
-  }, [ledger])
 
   function open(entry?: Transaction) {
     setEditId(entry?.id ?? null)
@@ -117,9 +116,10 @@ function Home({ historyOnly = false }: { historyOnly?: boolean }) {
   return <>
     {historyOnly ? <SpendingHistory entries={entries} onAdd={() => open()} onEdit={open} onDelete={setDeleteTarget} /> : <>
     <Summary {...summary} />
-    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in & out</h2><div className="activity-actions"><Link className="view-history" to="/history">View all spending <ArrowRight aria-hidden="true" size={15} /></Link><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div></div>
+    <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in & out</h2><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div>
       <div className="filters"><div className="filter-group"><label className="filter"><img src={icon(4)} alt="" /><select aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}><option value="all">All dates</option><option value="today">Today</option><option value="yesterday">Yesterday</option></select><img className="chevron" src={icon(5)} alt="" /></label><label className="filter"><select aria-label="Filter by category" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.filter(item => !historyOnly || item !== 'Income').map(item => <option key={item}>{item}</option>)}</select><img className="chevron" src={icon(5)} alt="" /></label></div><div className="month"><img src={icon(1)} alt="" /><span>{historyOnly ? 'All time' : new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span></div></div>
       <div className="entry-list" aria-label={historyOnly ? 'Spending history' : 'Recent entries'}>{shown.length ? shown.map(entry => <div className="entry" key={entry.id}><span className={`entry-icon ${entry.kind}`}><img src={icon(entry.kind === 'income' ? 9 : 6)} alt="" /></span><div className="entry-info"><strong>{entry.title}</strong><small>{entry.kind === 'income' ? 'Income source' : entry.category} · <time dateTime={entry.date} title={entry.date}>{displayDate(entry.date, today)}</time></small></div><strong className={`entry-amount ${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{money(entry.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${entry.title}`} onClick={() => open(entry)}><img src={icon(7)} alt="" /></button><button aria-label={`Delete ${entry.title}`} onClick={() => setDeleteTarget(entry)}><img src={icon(8)} alt="" /></button></div></div>) : <p className="entry-empty">{historyOnly && !entries.some(entry => entry.kind === 'expense') ? 'No expenses yet. Add your first expense to see it here.' : 'No entries match these filters.'}</p>}</div>
+      <div className="activity-footer"><Link className="view-history" to="/history">View all spending <ArrowRight aria-hidden="true" size={15} /></Link></div>
     </section>{!historyOnly && <aside className="ahead" aria-labelledby="ahead-title"><div className="ahead-heading"><h2 id="ahead-title">A little look ahead</h2><img src={icon(10)} alt="" /></div><div className="ahead-grid"><article className="ahead-card bill"><span className="ahead-icon"><img src={icon(11)} alt="" /></span><small>Coming up</small><h3>Phone bill</h3><p>Due Nov 3</p><strong className="bill-amount">$18.00</strong><Link to="/bills">View bills <img src={icon(12)} alt="" /></Link></article><article className="ahead-card savings"><span className="ahead-icon"><img src={icon(13)} alt="" /></span><small>Savings goal</small><h3>$180.00 <span>of $300.00</span></h3><div className="savings-progress"><span /></div><Link to="/savings">See your goal <img src={icon(14)} alt="" /></Link></article></div></aside>}</div>
     <p className="sample-note">Sample starting figures for this prototype. Your changes are saved in this browser.</p></>}
     {dialog && <div className="dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDialog(false) }}><section className="entry-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="dialog-heading"><h2 id="dialog-title">{editId ? historyOnly ? 'Edit expense' : 'Edit entry' : historyOnly ? 'Add expense' : form.kind === 'income' ? 'Add income' : 'Add entry'}</h2><button aria-label="Close" onClick={() => setDialog(false)}><X size={18} /></button></div><form noValidate onSubmit={save}><label>{form.kind === 'income' ? 'Where did it come from?' : 'Title'}<input autoFocus value={form.title} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} onChange={e => { setForm({ ...form, title: e.target.value }); setErrors(old => ({ ...old, title: undefined })) }} placeholder={form.kind === 'income' ? 'e.g. Monthly allowance' : 'What was it for?'} />{errors.title && <small className="field-error" id="title-error">{errors.title}</small>}</label>

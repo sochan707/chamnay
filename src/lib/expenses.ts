@@ -35,15 +35,24 @@ export function deleteEntry(entries: Transaction[], id: string): Transaction[] {
   return entries.filter(item => item.id !== id)
 }
 
+// ISO calendar dates sort lexically; the stable sort keeps the newest saved
+// entry first when several entries share a date.
+export function newestFirst(entries: Transaction[]): Transaction[] {
+  return [...entries].sort((a, b) => b.date.localeCompare(a.date))
+}
+
 const total = (entries: Transaction[], kind: Transaction['kind'], month?: string) =>
   entries.filter(entry => entry.kind === kind && (!month || entry.date.startsWith(month))).reduce((sum, entry) => sum + entry.amount, 0)
 
-export function getSummary(entries: Transaction[], startingEntries: Transaction[], startingBalance: number, startingSpent: number, month: string) {
+export function monthlySpending(entries: Transaction[], month: string): number {
+  return Math.round(total(entries, 'expense', month) * 100) / 100
+}
+
+export function getSummary(entries: Transaction[], startingEntries: Transaction[], startingBalance: number, month: string) {
   const incomeDelta = total(entries, 'income') - total(startingEntries, 'income')
   const expenseDelta = total(entries, 'expense') - total(startingEntries, 'expense')
-  const monthlyExpenseDelta = total(entries, 'expense', month) - total(startingEntries, 'expense', month)
   return {
     balance: Math.round((startingBalance + incomeDelta - expenseDelta) * 100) / 100,
-    spent: Math.round((startingSpent + monthlyExpenseDelta) * 100) / 100,
+    spent: monthlySpending(entries, month),
   }
 }

@@ -30,7 +30,7 @@ The business case forecasts **1,000 active users**, **5% Pro conversion**, and *
 **Candidate product scope from the business case:**
 
 - **Free plan:** bill reminders; spending history; add/edit income; add/edit/delete expenses; expense categories; savings goals; date and category filters; balance tracker; optional dark mode.
-- **Pro plan:** all Free features, plus custom themes; spending comparisons; quick expense shortcuts; low-balance alerts; budget limits.
+- **Pro plan:** all Free features, plus custom themes; spending comparisons; quick expense shortcuts; low-balance alerts; budget limits; export weekly and monthly budget reports to PDF.
 - **Cross-cutting needs:** simple interface, user-controlled notifications, correction of mistaken entries, and protection of financial data.
 
 The feature list is the business case's product plan, not yet a signed build commitment for every feature. By the end of Week 3, the team will rank features, define the Week 12 demo subset, and record any deferrals. Bank connections, automatic imports, financial advice, and a production subscription service are outside this prototype charter unless a scope change is approved.

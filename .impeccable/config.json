@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "createdAt": "2026-11-12T01:27:52.381Z",
+        "reason": "Agent: Geist is the installed and consistently configured incumbent app font; PRODUCT.md directs feature extensions to preserve the existing interface identity"
+      }
+    ]
+  }
+}

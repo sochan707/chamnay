@@ -5,7 +5,7 @@ import { transformWithOxc } from 'vite'
 
 const source = readFileSync(new URL('../src/lib/expenses.ts', import.meta.url), 'utf8')
 const { code } = await transformWithOxc(source, 'expenses.ts')
-const { validateEntry, saveEntry, deleteEntry, getSummary } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
+const { validateEntry, saveEntry, deleteEntry, getSummary, newestFirst } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
 
 const base = [
   { id: 'income', title: 'Allowance', category: 'Income', date: '2026-11-01', amount: 200, kind: 'income' },
@@ -43,4 +43,12 @@ test('editing an existing expense and moving an expense to another month recalcu
 test('income changes balance without changing spending', () => {
   const added = saveEntry(base, { ...form, kind: 'income', category: 'Income', amount: '25' }, 'extra-income')
   assert.deepEqual(summary(added), { balance: 325, spent: 100 })
+})
+
+test('history shows saved entries newest first without changing their stored order', () => {
+  const older = { ...base[1], id: 'older', date: '2026-10-30' }
+  const sameDay = { ...base[1], id: 'same-day', date: '2026-11-04' }
+  const saved = saveEntry([older, sameDay, ...base], form, 'new')
+  assert.deepEqual(newestFirst(saved).map(entry => entry.id), ['new', 'same-day', 'expense', 'income', 'older'])
+  assert.deepEqual(saved.map(entry => entry.id), ['new', 'older', 'same-day', 'income', 'expense'])
 })

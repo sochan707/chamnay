@@ -23,8 +23,8 @@
 .spending-select { position:relative; display:flex; align-items:center; min-width:126px; height:37px; border:1px solid #eae0d9; border-radius:10px; background:#fffdfa }
 .spending-select::after { content:'⌄'; position:absolute; right:15px; top:6px; color:#746a72; pointer-events:none }
 .spending-select select { width:100%; height:100%; appearance:none; padding:0 31px 0 16px; border:0; border-radius:inherit; outline-color:#bd7e8f; background:transparent; color:#3c353b; font-size:11px; font-weight:600; cursor:pointer }
-.spending-primary { min-width:133px; height:37px; padding:0 17px; border:0; border-radius:10px; background:#c78999; color:white; font-size:11px; font-weight:650 }
-.spending-primary:hover { background:#b97587 }
+.spending-primary { min-width:133px; height:37px; padding:0 17px; border:0; border-radius:10px; background:#a6536c; color:white; font-size:11px; font-weight:650 }
+.spending-primary:hover { background:#90445c }
 .spending-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:17px }
 .spending-stat { position:relative; min-height:109px; display:flex; flex-direction:column; justify-content:center; overflow:hidden; padding:20px 21px; border:1px solid #eadfd8; border-radius:18px; background:#fffdfa }
 .spending-stat>span { color:#ad536d; font-size:10px; font-weight:700; text-transform:uppercase }
@@ -36,22 +36,22 @@
 .stat-orbit.two { width:19px; height:19px; top:59px; right:12px; background:#f8d8a4 }
 .stat-sparkle { position:absolute; display:grid; place-items:center; top:23px; right:19px; width:27px; height:27px; border-radius:9px; background:#f7e9ee; color:#a9516b; font-size:17px; font-style:normal }
 .spending-charts { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr); gap:14px; margin-bottom:20px }
-.spending-panel { min-width:0; height:244px; padding:20px 21px 16px; border:1px solid #eadfd8; border-radius:18px; background:#fffdfa }
+.spending-panel { min-width:0; min-height:244px; padding:20px 21px 16px; border:1px solid #eadfd8; border-radius:18px; background:#fffdfa }
 .spending-panel-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:10px }
 .spending-panel h2 { margin:0; font-size:16px; line-height:1.15; font-weight:700; letter-spacing:-.25px }
 .spending-panel p { margin:6px 0 0; color:#7a7279; font-size:10px }
 .panel-period { padding:8px 20px; border-radius:10px; background:#f6e9ed; color:#ad536d; text-transform:uppercase; font-size:9px; line-height:1; font-weight:700; white-space:nowrap }
-.trend-plot { width:100%; height:176px; margin-top:7px }
+.trend-plot { width:100%; height:172px; margin-top:7px }
 .trend-plot svg { width:100%; height:100%; overflow:visible }
 .trend-grid { stroke:#e8dcd6; stroke-dasharray:2 5; stroke-width:1 }
-.trend-y,.trend-x { fill:#726a72; font-size:9px; font-weight:600 }
-.trend-x { font-size:8px }
+.trend-y,.trend-x { fill:#625860; font-size:11px; font-weight:600 }
+.trend-x { font-size:10px }
 .trend-zero { stroke:#c98999; stroke-width:1.6; stroke-dasharray:4 5 }
-.trend-empty { fill:#70636e; font-size:11px; font-weight:650 }
+.trend-empty { fill:#625860; font-size:12px; font-weight:650 }
 .categories-content { display:flex; align-items:center; gap:20px; height:169px }
 .category-donut { flex:none; width:142px; height:142px; display:grid; place-items:center; border-radius:50%; transform:rotate(-90deg) }
 .category-donut>div { width:107px; height:107px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:50%; background:#fffdfa; transform:rotate(90deg) }
-.category-donut strong { font-size:20px; line-height:1; letter-spacing:-.45px }
+.category-donut strong { font-size:18px; line-height:1; letter-spacing:-.45px }
 .category-donut small { margin-top:5px; color:#756d76; font-size:10px }
 .category-legend { flex:1; min-width:0; display:grid; gap:17px; padding:0; margin:0; list-style:none }
 .category-legend li { display:flex; align-items:center; gap:8px; font-size:10px }
@@ -84,7 +84,7 @@
 .expense-value { justify-self:end; white-space:nowrap; font-size:11px; font-weight:700 }
 .expense-row-actions { position:absolute; top:4px; right:100px; display:flex; gap:2px; opacity:0; transition:opacity .15s }
 .expense-row:hover .expense-row-actions,.expense-row:focus-within .expense-row-actions { opacity:1 }
-.expense-row-actions button { width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:8px; background:#fffdfa; color:#9e566b }
+.expense-row-actions button { width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:8px; background:#fffdfa; color:#9e566b }
 .expense-row-actions button:hover { background:#f6e9ed }
 .expenses-footer { min-height:35px; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:4px 22px; color:#786f77; font-size:9px }
 .expenses-footer button { border:0; background:transparent; color:#ad536d; font-size:10px; font-weight:650 }
@@ -103,3 +103,33 @@
 .history-shell .brand-mark img { display:none }
 .history-shell .brand-mark::after { content:""; width:20px; height:20px; background:#342f35; clip-path:polygon(50% 0,62% 36%,100% 50%,62% 64%,50% 100%,38% 64%,0 50%,38% 36%) }
 @media (max-width:700px) { .history-shell .mobile-brand .brand-mark::after { width:15px; height:15px } .expenses-heading { position:relative } .mobile-add-expense { position:absolute; top:-4px; right:0; display:block; padding:5px 8px; border:0; border-radius:7px; background:#c78999; color:white; font-size:9px; font-weight:650 } }
+
+/* Spending dashboard finishing details */
+.spending-page { font-variant-numeric: tabular-nums; }
+.spending-page button { cursor: pointer; }
+.spending-page :is(button, select):focus-visible { outline: 3px solid #7f3c55; outline-offset: 2px; }
+.spending-page ::selection { background: #f1cad5; color: #383238; }
+.spending-select:focus-within { border-color: #a6536c; }
+.expense-row-actions button:focus-visible { opacity: 1; }
+@media (max-width:700px) {
+  .spending-panel { height: auto; min-height: 171px; }
+  .trend-plot { height: 120px; }
+  .trend-x { font-size: 15px; }
+  .trend-empty { font-size: 15px; }
+  .category-donut strong { font-size: 13px; }
+  .category-legend li { font-size: 10px; }
+  .category-legend { gap: 8px; }
+  .expenses-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; column-gap: 8px; }
+  .mobile-add-expense { position: static; min-height: 34px; padding: 0 10px; background: #a6536c; font-size: 10px; }
+  .mobile-add-expense:hover { background: #90445c; }
+  .expense-filters { grid-column: 1 / -1; margin-top: 8px; }
+  .expense-filters .spending-select { height: 36px; }
+  .expense-filters .spending-select select { font-size: 10px; }
+  .expense-filters .spending-select::after { top: 7px; }
+  .expense-row { min-height: 50px; }
+  .expense-name strong, .expense-value { font-size: 11px; }
+  .expense-name small { font-size: 9px; }
+  .expense-row-actions button { width: 30px; height: 32px; }
+  .expenses-footer { font-size: 10px; }
+  .expenses-footer button { min-height: 36px; font-size: 10px; }
+}

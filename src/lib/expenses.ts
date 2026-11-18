@@ -49,6 +49,14 @@ export function getSummary(entries: Transaction[], startingEntries: Transaction[
 }
 
 export type DateRange = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'
+export const DATE_RANGE_LABELS: Record<DateRange, string> = {
+  all: 'All dates',
+  today: 'Today',
+  yesterday: 'Yesterday',
+  week: 'This week',
+  month: 'This month',
+  custom: 'Choose dates…',
+}
 export type EntryFilters = { range: DateRange; from: string; to: string; categoryIds: string[] }
 export const NO_FILTERS: EntryFilters = { range: 'all', from: '', to: '', categoryIds: [] }
 

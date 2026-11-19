@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
 import { ArrowRight, PieChart, X } from 'lucide-react'
 import { demoBudget, demoTransactions, type Transaction } from './data/demo'
@@ -73,7 +73,7 @@ function displayDate(date: string, today: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const shortDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+const fullDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
 function readNextBill(): BillReminder | null {
   try {
@@ -87,53 +87,35 @@ function readNextBill(): BillReminder | null {
 function Home({ historyOnly = false, ledger, setEntries }: { historyOnly?: boolean; ledger: Ledger; setEntries: (update: (entries: Transaction[]) => Transaction[]) => void }) {
   const { entries, startingEntries } = ledger
   const [nextBill] = useState(readNextBill)
-  const [dateRange, setDateRange] = useState({ from: '', to: '', label: 'All dates' })
-  const [draftFrom, setDraftFrom] = useState('')
-  const [draftTo, setDraftTo] = useState('')
-  const [rangeError, setRangeError] = useState('')
-  const dateFilterRef = useRef<HTMLDetailsElement>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<EntryForm>({ title: '', category: '', amount: '', kind: 'expense', date: localDate() })
   const [errors, setErrors] = useState<FormErrors>({})
   const [dialog, setDialog] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
-  const today = localDate()
-  const yesterday = new Date(`${today}T12:00:00`)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayDate = localDate(yesterday)
+  const [today, setToday] = useState(localDate)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    const refreshDate = () => {
+      clearTimeout(timer)
+      const now = new Date()
+      setToday(localDate(now))
+      timer = setTimeout(refreshDate, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime())
+    }
+    refreshDate()
+    document.addEventListener('visibilitychange', refreshDate)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', refreshDate)
+    }
+  }, [])
   const month = today.slice(0, 7)
   const summary = getSummary(entries, startingEntries, demoBudget.balance, month)
-  const visible = filterEntries(entries, dateRange.from, dateRange.to, categoryFilter)
-  const filtersActive = !!dateRange.from || categoryFilter !== 'all'
-  const shown = filtersActive ? visible : visible.slice(0, 4)
-
-  function chooseDateRange(from: string, to: string, label: string) {
-    setDateRange({ from, to, label })
-    setDraftFrom(from)
-    setDraftTo(to)
-    setRangeError('')
-    if (dateFilterRef.current) dateFilterRef.current.open = false
-  }
-
-  function applyDateRange(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    const from = String(formData.get('from') ?? '')
-    const to = String(formData.get('to') ?? '')
-    if (!from || !to) {
-      setRangeError('Choose both a start and an end date.')
-      return
-    }
-    if (from > to) {
-      setRangeError('The end date must be on or after the start date.')
-      return
-    }
-    chooseDateRange(from, to, `${shortDate(from)} – ${shortDate(to)}`)
-  }
+  const visible = filterEntries(entries, today, today, categoryFilter)
+  const filtersActive = categoryFilter !== 'all'
+  const shown = visible
 
   function clearFilters() {
-    chooseDateRange('', '', 'All dates')
     setCategoryFilter('all')
   }
 
@@ -164,8 +146,8 @@ function Home({ historyOnly = false, ledger, setEntries }: { historyOnly?: boole
     {historyOnly ? <SpendingHistory entries={entries} onAdd={() => open()} onEdit={open} onDelete={setDeleteTarget} /> : <>
     <Summary {...summary} />
     <div className="lower"><section className="activity" aria-labelledby="activity-title"><div className="activity-heading"><h2 id="activity-title">Money in & out</h2><Button className="add-entry" onClick={() => open()}><img src={icon(3)} alt="" />Add entry</Button></div>
-      <div className="filters"><div className="filter-group"><details className="home-date-filter" ref={dateFilterRef}><summary className="filter" aria-label={`Filter by date: ${dateRange.label}`}><img src={icon(4)} alt="" /><span>{dateRange.label}</span><img className="chevron" src={icon(5)} alt="" /></summary><form className="home-date-panel" onSubmit={applyDateRange} noValidate><div className="home-date-presets"><button type="button" onClick={() => chooseDateRange('', '', 'All dates')}>All dates</button><button type="button" onClick={() => chooseDateRange(today, today, 'Today')}>Today</button><button type="button" onClick={() => chooseDateRange(yesterdayDate, yesterdayDate, 'Yesterday')}>Yesterday</button></div><div className="home-date-fields"><label>From<input type="date" name="from" value={draftFrom} aria-invalid={!!rangeError} onChange={e => { setDraftFrom(e.target.value); setRangeError('') }} /></label><label>To<input type="date" name="to" value={draftTo} aria-invalid={!!rangeError} onChange={e => { setDraftTo(e.target.value); setRangeError('') }} /></label></div>{rangeError && <p className="home-date-error" role="alert">{rangeError}</p>}<button type="submit" className="home-date-apply">Apply dates</button></form></details><label className="filter"><select aria-label="Filter by category" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select><img className="chevron" src={icon(5)} alt="" /></label></div><div className="month" aria-label={`Showing ${dateRange.label}`}><img src={icon(1)} alt="" /><span>{dateRange.label === 'All dates' ? 'All time' : dateRange.label}</span></div></div>
-      <div className="entry-list" aria-label="Recent entries">{shown.length ? shown.map(entry => <div className="entry" key={entry.id}><span className={`entry-icon ${entry.kind}`}><img src={icon(entry.kind === 'income' ? 9 : 6)} alt="" /></span><div className="entry-info"><strong>{entry.title}</strong><small>{entry.kind === 'income' ? 'Income source' : entry.category} · <time dateTime={entry.date} title={entry.date}>{displayDate(entry.date, today)}</time></small></div><strong className={`entry-amount ${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{money(entry.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${entry.title}`} onClick={() => open(entry)}><img src={icon(7)} alt="" /></button><button aria-label={`Delete ${entry.title}`} onClick={() => setDeleteTarget(entry)}><img src={icon(8)} alt="" /></button></div></div>) : <div className="entry-empty"><p>{entries.length ? `No ${categoryFilter === 'all' ? '' : `${categoryFilter} `}entries${dateRange.label === 'All dates' ? '' : ` for ${dateRange.label}`}.` : 'No entries yet. Add your first entry to get started.'}</p>{filtersActive && <button type="button" onClick={clearFilters}>Clear filters</button>}</div>}</div>
+      <div className="filters"><div className="filter-group"><div className="filter today-date" aria-label={`Showing today, ${fullDate(today)}`}><img src={icon(4)} alt="" /><time dateTime={today}>{fullDate(today)}</time></div><label className="filter"><select aria-label="Filter by category" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select><img className="chevron" src={icon(5)} alt="" /></label></div></div>
+      <div className="entry-list" aria-label="Today's entries">{shown.length ? shown.map(entry => <div className="entry" key={entry.id}><span className={`entry-icon ${entry.kind}`}><img src={icon(entry.kind === 'income' ? 9 : 6)} alt="" /></span><div className="entry-info"><strong>{entry.title}</strong><small>{entry.kind === 'income' ? 'Income source' : entry.category} · <time dateTime={entry.date} title={entry.date}>{displayDate(entry.date, today)}</time></small></div><strong className={`entry-amount ${entry.kind}`}>{entry.kind === 'income' ? '+' : '−'}{money(entry.amount)}</strong><div className="entry-actions"><button aria-label={`Edit ${entry.title}`} onClick={() => open(entry)}><img src={icon(7)} alt="" /></button><button aria-label={`Delete ${entry.title}`} onClick={() => setDeleteTarget(entry)}><img src={icon(8)} alt="" /></button></div></div>) : <div className="entry-empty"><p>{entries.length ? `No ${categoryFilter === 'all' ? '' : `${categoryFilter} `}entries for today.` : 'No entries yet. Add your first entry to get started.'}</p>{filtersActive && <button type="button" onClick={clearFilters}>Clear filters</button>}</div>}</div>
       <div className="activity-footer"><Link className="view-history" to="/history">View all spending <ArrowRight aria-hidden="true" size={15} /></Link></div>
     </section>{!historyOnly && <aside className="ahead" aria-labelledby="ahead-title"><div className="ahead-heading"><h2 id="ahead-title">A little look ahead</h2><img src={icon(10)} alt="" /></div><div className="ahead-grid"><article className="ahead-card bill"><span className="ahead-icon"><img src={icon(11)} alt="" /></span><small>{nextBill ? 'Coming up' : 'Bill reminders'}</small><h3>{nextBill?.name ?? 'No bills yet'}</h3><p>{nextBill ? `Due ${displayDate(nextBill.dueDate, today)}` : 'Plan your next payment'}</p>{nextBill && <strong className="bill-amount">{money(nextBill.amount)}</strong>}<Link to="/bills">{nextBill ? 'View bills' : 'Add a reminder'} <img src={icon(12)} alt="" /></Link></article><article className="ahead-card savings"><span className="ahead-icon"><img src={icon(13)} alt="" /></span><small>Savings goal</small><h3>$180.00 <span>of $300.00</span></h3><div className="savings-progress"><span /></div><Link to="/savings">See your goal <img src={icon(14)} alt="" /></Link></article></div></aside>}</div>
     <p className="sample-note">Sample starting figures for this prototype. Your changes are saved in this browser.</p></>}

@@ -4,7 +4,7 @@ button, select, input { font:inherit }
 button { cursor:pointer }
 a { color:inherit }
 .app-shell { min-height:100vh; background:var(--cream) }
-.sidebar { position:fixed; inset:0 auto 0 0; z-index:5; width:236px; padding:33px 18px 24px; background:var(--paper); border-right:1px solid var(--line); display:flex; flex-direction:column }
+.sidebar { position:fixed; inset:0 auto 0 0; z-index:5; width:236px; padding:33px 18px 24px; background:var(--paper); border-right:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto }
 .brand { display:inline-flex; align-items:center; gap:10px; width:max-content; text-decoration:none; color:var(--ink) }
 .brand-mark { position:relative; display:grid; place-items:center; width:38px; height:38px; border-radius:13px; background:#f5b297; transform:rotate(-7deg) }
 .brand-mark img { display:block; width:21px; height:21px; transform:rotate(7deg) }
@@ -17,7 +17,7 @@ a { color:inherit }
 .nav-link:hover { background:#f6eeec }
 .nav-link.active { background:#f6e7e8; color:#733e50 }
 .nav-link img,.nav-link svg { display:block; flex:none; width:19px; height:19px }
-.sidebar-note { position:absolute; top:598px; left:18px; width:199px; border-top:1px solid var(--line); padding:20px 12px 0; display:flex; flex-direction:column; align-items:flex-start }
+.sidebar-note { width:100%; margin-top:auto; border-top:1px solid var(--line); padding:20px 12px 0; display:flex; flex-direction:column; align-items:flex-start }
 .sidebar-note>span { display:grid; place-items:center; width:35px; height:35px; border-radius:12px; background:#f5e4c4; margin-bottom:10px }
 .sidebar-note img { display:block; width:22px; height:22px }
 .sidebar-note strong { font-size:13px; font-weight:600 }
@@ -71,11 +71,28 @@ a { color:inherit }
 .add-entry:hover { background:#b97687 !important }
 .add-entry img { width:18px; height:18px }
 .filters { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px }
-.filter-group { display:flex; gap:9px; min-width:0 }
-.filter { height:35px; display:flex; align-items:center; gap:8px; padding:0 10px; border:1px solid var(--line); border-radius:9px; background:var(--paper) }
+.filter-group { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); flex:0 1 310px; gap:9px; min-width:0 }
+.filter { min-width:0; height:35px; display:flex; align-items:center; gap:8px; padding:0 10px; border:1px solid var(--line); border-radius:9px; background:var(--paper) }
 .filter>img:first-child { width:16px; height:16px }
 .filter .chevron { width:14px; height:14px }
-.filter select { min-width:0; max-width:140px; appearance:none; border:0; outline:0; background:transparent; color:#5c5359; font-size:12px; cursor:pointer }
+.filter select { min-width:0; width:100%; appearance:none; border:0; outline:0; background:transparent; color:#5c5359; font-size:12px; text-overflow:ellipsis; cursor:pointer }
+.filter:focus-within,.home-date-filter[open] summary { border-color:#a86077 }
+.home-date-filter { position:relative; z-index:2; min-width:0 }
+.home-date-filter summary { width:100%; cursor:pointer; list-style:none }
+.home-date-filter summary::-webkit-details-marker { display:none }
+.home-date-filter summary span { min-width:0; overflow:hidden; color:#5c5359; font-size:12px; text-overflow:ellipsis; white-space:nowrap }
+.home-date-filter summary .chevron { margin-left:auto }
+.home-date-panel { position:absolute; top:calc(100% + 7px); left:0; width:min(310px,calc(100vw - 32px)); padding:15px; border:1px solid var(--line); border-radius:12px; background:var(--paper); box-shadow:0 12px 32px #4f39401f }
+.home-date-presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-bottom:14px }
+.home-date-presets button { min-height:32px; padding:0 5px; border:1px solid var(--line); border-radius:8px; background:#fff8f2; color:#5c5359; font-size:11px }
+.home-date-presets button:hover,.home-date-apply:hover { background:#f6e7e8 }
+.home-date-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px }
+.home-date-fields label { display:grid; gap:6px; color:#5c5359; font-size:12px; font-weight:600 }
+.home-date-fields input { min-width:0; width:100%; height:38px; padding:0 6px; border:1px solid var(--line); border-radius:8px; background:#fffdfa; color:var(--ink); font-size:13px }
+.home-date-fields input[aria-invalid="true"] { border-color:#9e465e }
+.home-date-error { margin:9px 0 0; color:#922f4d; font-size:12px; line-height:1.35 }
+.home-date-apply { display:block; min-height:35px; margin:14px 0 0 auto; padding:0 12px; border:1px solid var(--rose); border-radius:8px; background:var(--rose); color:#35232c; font-size:12px; font-weight:600 }
+.home-date-filter summary:focus-visible,.home-date-panel :is(button,input):focus-visible,.filter select:focus-visible,.entry-empty button:focus-visible { outline:3px solid #733e50; outline-offset:2px }
 .entry-list { margin-top:12px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--paper) }
 .entry { min-height:76px; display:flex; align-items:center; gap:12px; padding:12px 16px; border-top:1px solid #f0e9e4 }
 .entry:first-child { border-top:0 }
@@ -92,7 +109,10 @@ a { color:inherit }
 .entry-actions button:hover { background:#f6eeec }
 .entry-actions img { width:16px; height:16px }
 .entry-empty { padding:24px; text-align:center; font-size:12px; color:var(--soft) }
-.ahead-heading { height:32px; display:flex; align-items:flex-start; justify-content:space-between; padding-top:4px }
+.entry-empty p { margin:0 }
+.entry-empty button { margin-top:8px; padding:4px 8px; border:0; border-radius:6px; background:transparent; color:#70495b; font-size:12px; font-weight:600; text-decoration:underline; text-underline-offset:3px }
+.entry-empty button:hover { background:#f6eeec }
+.ahead-heading { min-height:38px; display:flex; align-items:center; justify-content:space-between }
 .ahead h2 { font-size:17px; line-height:20px; letter-spacing:-.43px }
 .ahead-heading img { width:20px; height:20px }
 .ahead-grid { display:grid; gap:12px; margin-top:12px }
@@ -133,8 +153,11 @@ a { color:inherit }
 .form-row.single { grid-template-columns:1fr }
 .save-entry { height:40px !important; background:var(--rose) !important; color:#35232c !important }
 @media (max-width:1050px) and (min-width:701px) { .sidebar { width:210px } .main-shell { margin-left:210px } .lower { grid-template-columns:minmax(0,1fr) 220px; gap:20px } .page { padding-left:28px; padding-right:28px } .topbar { padding-left:28px; padding-right:28px } .balance-copy strong { font-size:46px } .plan { padding-left:22px; padding-right:22px } .plan-values { gap:10px } .entry { gap:8px; padding-left:10px; padding-right:10px } }
+@media (max-width:960px) and (min-width:701px) { .lower { grid-template-columns:1fr } .ahead { margin-top:30px } .ahead-grid { grid-template-columns:repeat(2,minmax(0,1fr)) } }
+@media (max-width:850px) and (min-width:701px) { .summary { grid-template-columns:1fr } .balance { min-height:190px } .plan { min-height:150px; border-left:0; border-top:1px solid #e8cda8 } }
 @media (max-width:700px) { .sidebar { display:none } .main-shell { margin:0 } .topbar { height:62px; padding:0 16px } .mobile-brand { display:block } .mobile-brand .brand { gap:8px } .mobile-brand .brand-mark { width:28px; height:28px; border-radius:9px } .mobile-brand .brand-mark img { width:16px; height:16px } .mobile-brand .brand-name { font-size:17px; letter-spacing:-.7px } .breadcrumb,.profile>span { display:none } .profile b { width:34px; height:34px } .page { padding:18px 16px 88px; max-width:none } .month { width:39px; min-width:39px; height:36px; padding:0; justify-content:center } .month span { display:none } .summary { grid-template-columns:1fr; margin-top:16px; min-height:0; border-radius:16px } .balance { height:192px; padding:28px 22px } .balance-copy>span { font-size:12px } .balance-copy strong { font-size:43px; letter-spacing:-1.7px; margin-top:6px } .balance-copy p { font-size:11px; margin-top:12px } .balance-art { height:192px; right:-25px; top:0 } .balance-art>img { right:20px; top:29px } .bubble.small { top:135px; left:17px } .bubble.medium { top:130px; left:130px } .bubble.large { top:156px; left:55px } .plan { height:143px; padding:20px 22px; border:0; border-top:1px solid #e8cda8; justify-content:flex-start } .plan-values strong { font-size:18px } .plan-values span,.progress-label { font-size:11px } .progress-label { margin-top:21px } .progress-label strong { font-size:15px } .progress { margin-top:9px } .lower { display:block; margin-top:24px } .activity h2 { font-size:18px } .activity-heading { align-items:flex-start } .activity-actions { gap:9px } .view-history { font-size:10px } .view-history svg { width:13px; height:13px } .history-intro { margin:8px 0 26px } .history-intro h1 { font-size:26px } .history-intro p { font-size:12px } .add-entry { padding:0 9px !important; gap:5px !important; font-size:10px !important } .add-entry img { width:15px; height:15px } .filters { margin-top:16px } .filter select { font-size:11px } .entry-list { margin-top:12px } .entry { padding:12px 11px; gap:10px } .entry-icon { width:35px; height:35px; border-radius:11px } .entry-info strong,.entry-amount { font-size:11px } .entry-info small { font-size:10px } .entry-actions { gap:0 } .entry-actions button { width:27px } .ahead { margin-top:36px } .ahead h2 { font-size:17px } .ahead-grid { grid-template-columns:1fr 1fr; gap:10px } .ahead-card { min-height:200px; padding:14px } .ahead-card h3 { font-size:17px } .ahead-card .bill-amount { position:static; margin-top:10px; font-size:17px } .savings h3 { white-space:nowrap; font-size:16px } .savings h3 span { font-size:10px } .sample-note { margin-top:20px; font-size:10px } .mobile-nav { position:fixed; z-index:10; bottom:0; left:0; right:0; height:63px; display:grid; grid-template-columns:repeat(5,1fr); align-items:center; padding:0 8px; background:var(--paper); border-top:1px solid var(--line) } .mobile-nav .nav-link { height:48px; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:0; border-radius:9px; font-size:10px } .mobile-nav .nav-link img,.mobile-nav .nav-link svg { width:20px; height:20px } }
 @media (max-width:375px) { .entry { gap:6px; padding-left:8px; padding-right:8px } .entry-actions button { width:23px } .entry-amount { font-size:10px } .ahead-card { padding:11px } .savings h3 { font-size:14px } .savings h3 span { font-size:9px } }
+@media (max-width:700px) { .filters { flex-wrap:nowrap } .filter-group { flex:1; max-width:none } .month { display:none } }
 .field-error { color:#a33b4e; font-size:11px; line-height:1.3 }
 .entry-dialog [aria-invalid="true"] { border-color:#a33b4e }
 .confirm-dialog h2 { margin:0; font-size:20px }

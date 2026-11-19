@@ -21,6 +21,7 @@ export function validateEntry(form: EntryForm): FormErrors {
   if (!/^\d+(\.\d{1,2})?$/.test(form.amount.trim()) || !Number.isFinite(amount) || amount <= 0) errors.amount = 'Enter an amount above zero, with up to two decimal places.'
   if (!form.category.trim()) errors.category = 'Choose a category.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date) || Number.isNaN(new Date(`${form.date}T12:00:00`).getTime()) || localDate(new Date(`${form.date}T12:00:00`)) !== form.date) errors.date = 'Choose a valid date.'
+  else if (form.date > localDate()) errors.date = 'Choose today or an earlier date.'
   return errors
 }
 
@@ -39,6 +40,16 @@ export function deleteEntry(entries: Transaction[], id: string): Transaction[] {
 // entry first when several entries share a date.
 export function newestFirst(entries: Transaction[]): Transaction[] {
   return [...entries].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export function isWithinDateRange(date: string, from: string, to: string): boolean {
+  return (!from || date >= from) && (!to || date <= to)
+}
+
+export function filterEntries(entries: Transaction[], from: string, to: string, category: string): Transaction[] {
+  return newestFirst(entries.filter(entry =>
+    isWithinDateRange(entry.date, from, to) && (category === 'all' || entry.category === category)
+  ))
 }
 
 const total = (entries: Transaction[], kind: Transaction['kind'], month?: string) =>

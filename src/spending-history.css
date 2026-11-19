@@ -72,7 +72,7 @@
   cursor: pointer;
 }
 .spending-primary:hover, .mobile-add-expense:hover { background: #b97687; }
-.spending-page :is(button, select):focus-visible { outline: 3px solid #733e50; outline-offset: 2px; }
+.spending-page :is(button, select, input, summary):focus-visible { outline: 3px solid #733e50; outline-offset: 2px; }
 .spending-page ::selection { background: #f1cad5; color: var(--ink); }
 .spending-select:focus-within { border-color: #a86077; }
 
@@ -172,6 +172,57 @@
 .expenses-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
 .mobile-add-expense { display: none; }
 .expense-filters .spending-select { min-width: 145px; height: 35px; }
+.date-filter { position: relative; z-index: 2; width: 185px; flex: none; }
+.date-filter summary {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 35px;
+  padding: 9px 32px 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  color: #5c5359;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+.date-filter summary::-webkit-details-marker { display: none; }
+.date-filter summary::after {
+  content: '';
+  position: absolute;
+  right: 13px;
+  top: 11px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid #665d65;
+  border-bottom: 1.5px solid #665d65;
+  transform: rotate(45deg);
+}
+.date-filter[open] summary { border-color: #a86077; }
+.date-filter-panel {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(310px, calc(100vw - 36px));
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 12px 32px #4f39401f;
+}
+.date-filter-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.date-filter-fields label { display: grid; gap: 6px; color: #5c5359; font-size: 12px; font-weight: 600; }
+.date-filter-fields input { min-width: 0; width: 100%; height: 38px; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; background: #fffdfa; color: var(--ink); font: inherit; font-size: 13px; }
+.date-filter-fields input[aria-invalid="true"] { border-color: #9e465e; }
+.date-filter-error { margin: 9px 0 0; color: #922f4d; font-size: 12px; line-height: 1.35; }
+.date-filter-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.date-filter-actions button { min-height: 35px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+.date-filter-actions button[type="submit"] { border-color: var(--rose); background: var(--rose); color: #35232c; }
+.date-filter-actions button:hover { background: #f6eeec; }
+.date-filter-actions button[type="submit"]:hover { background: #b97687; }
 .expenses-card, .expenses-empty { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
 .expenses-table-heading, .expense-row {
   display: grid;
@@ -215,6 +266,9 @@
   .category-legend { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 9px; }
 }
 @media (max-width: 850px) {
+  .spending-header { align-items: flex-start; flex-direction: column; gap: 17px; }
+  .spending-header-actions { width: 100%; }
+  .spending-header-actions .spending-select { flex: 1; }
   .spending-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .spent-stat { grid-column: 1 / -1; min-height: 168px; }
   .spending-stat:not(.spent-stat) { min-height: 120px; padding: 20px; border-top: 1px solid #e8d8c8; }
@@ -226,11 +280,10 @@
   .expenses-heading { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 700px) {
-  .spending-header { display: block; margin-bottom: 20px; }
+  .spending-header { margin-bottom: 20px; }
   .spending-header h1 { font-size: 26px; }
   .spending-subtitle { margin-top: 7px; font-size: 12px; }
-  .spending-header-actions { margin-top: 17px; }
-  .spending-header-actions .spending-select { flex: 1; }
+  .spending-header-actions { margin-top: 0; }
   .spending-stats { margin-bottom: 25px; }
   .spent-stat { min-height: 152px; padding: 25px 22px; }
   .spent-stat > strong { font-size: 41px; }
@@ -245,6 +298,9 @@
   .categories-content { margin-top: 13px; }
   .expenses-heading { gap: 12px; }
   .expense-filters { width: 100%; }
+  .date-filter { width: auto; flex: 1; min-width: 0; }
+  .date-filter-panel { right: auto; left: 0; }
+  .date-filter-fields input { font-size: 16px; }
   .expense-filters .spending-select { flex: 1; min-width: 0; }
   .expenses-table-heading { display: none; }
   .expense-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 10px 11px; }

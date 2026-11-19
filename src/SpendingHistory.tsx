@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { Transaction } from './data/demo'
-import { localDate, monthlySpending, newestFirst } from './lib/expenses'
+import { isWithinDateRange, localDate, monthlySpending, newestFirst } from './lib/expenses'
 import './spending-history.css'
 
 const palette: Record<string, string> = {
@@ -15,6 +15,7 @@ const palette: Record<string, string> = {
 const cash = (amount: number) => `$${amount.toFixed(2)}`
 const monthLabel = (month: string) => new Date(`${month}-01T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 const fullDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+const shortDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
 const dayName = (date: Date) => date.toLocaleDateString('en-US', { weekday: 'short' })
 
 type Props = {
@@ -76,7 +77,12 @@ export default function SpendingHistory({ entries, onAdd, onEdit, onDelete }: Pr
   const todayMonth = localDate().slice(0, 7)
   const months = useMemo(() => [...new Set([todayMonth, ...expenses.map(entry => entry.date.slice(0, 7))])].sort().reverse(), [expenses, todayMonth])
   const [month, setMonth] = useState(todayMonth)
-  const [dateFilter, setDateFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [draftFrom, setDraftFrom] = useState('')
+  const [draftTo, setDraftTo] = useState('')
+  const [rangeError, setRangeError] = useState('')
+  const dateFilterRef = useRef<HTMLDetailsElement>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const monthly = expenses.filter(entry => entry.date.startsWith(month))
   const spent = monthlySpending(entries, month)
@@ -85,14 +91,44 @@ export default function SpendingHistory({ entries, onAdd, onEdit, onDelete }: Pr
     return totals
   }, {})).sort((a, b) => b[1] - a[1])[0]
   const categories = [...new Set(expenses.map(entry => entry.category))].sort()
-  const filtered = expenses.filter(entry => (dateFilter === 'all' || entry.date.startsWith(dateFilter)) && (categoryFilter === 'all' || entry.category === categoryFilter))
+  const filtered = expenses.filter(entry => isWithinDateRange(entry.date, dateFrom, dateTo) && (categoryFilter === 'all' || entry.category === categoryFilter))
+
+  function applyDateRange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    const from = String(formData.get('from') ?? '')
+    const to = String(formData.get('to') ?? '')
+    if (!from || !to) {
+      setRangeError('Choose both a start and an end date.')
+      return
+    }
+    if (from > to) {
+      setRangeError('The end date must be on or after the start date.')
+      return
+    }
+    setDraftFrom(from)
+    setDraftTo(to)
+    setDateFrom(from)
+    setDateTo(to)
+    setRangeError('')
+    if (dateFilterRef.current) dateFilterRef.current.open = false
+  }
+
+  function clearDateRange() {
+    setDraftFrom('')
+    setDraftTo('')
+    setDateFrom('')
+    setDateTo('')
+    setRangeError('')
+    if (dateFilterRef.current) dateFilterRef.current.open = false
+  }
 
   return <div className="spending-page">
     <div className="spending-header"><div><h1>Spending history</h1><p className="spending-subtitle">See where your money went, one day at a time.</p></div><div className="spending-header-actions"><label className="spending-select"><span className="sr-only">Summary month</span><select value={month} onChange={event => setMonth(event.target.value)}>{months.map(item => <option key={item} value={item}>{monthLabel(item)}</option>)}</select></label><button className="spending-primary" onClick={onAdd}>+ Add expense</button></div></div>
     <section className="spending-stats" aria-label="Spending summary"><article className="spending-stat spent-stat"><span>Spent this month</span><strong>{cash(spent)}</strong><small>{new Date(`${month}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</small><i className="stat-orbit one" /><i className="stat-orbit two" /></article><article className="spending-stat"><span>Transactions</span><strong>{monthly.length}</strong><small>Recorded this month</small></article><article className="spending-stat"><span>Top category</span><strong>{topCategory?.[0] ?? '—'}</strong><small>{topCategory ? `${cash(topCategory[1])} · ${Math.round(topCategory[1] / spent * 100)}% of spending` : 'No category yet'}</small></article></section>
     <div className="spending-charts"><Trend entries={monthly} month={month} /><Categories entries={monthly} month={month} /></div>
-    <section className="spending-expenses" aria-labelledby="past-expenses-title"><div className="expenses-heading"><div><h2 id="past-expenses-title">Past expenses</h2><p>Newest first · date, category, name and amount</p></div><button className="mobile-add-expense" onClick={onAdd}>+ Add expense</button><div className="expense-filters"><label className="spending-select"><span className="sr-only">Filter expense dates</span><select value={dateFilter} onChange={event => setDateFilter(event.target.value)}><option value="all">All dates</option>{months.map(item => <option key={item} value={item}>{monthLabel(item)}</option>)}</select></label><label className="spending-select"><span className="sr-only">Filter expense categories</span><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label></div></div>
-      {filtered.length ? <div className="expenses-card"><div className="expenses-table-heading"><span>Expense</span><span>Category</span><span>Date</span><span>Amount</span></div><div className="expenses-list" key={`${dateFilter}:${categoryFilter}`} role="region" aria-label="Past expenses list" tabIndex={filtered.length > 5 ? 0 : undefined}>{filtered.map(entry => <div className="expense-row" key={entry.id}><div className="expense-name"><span className={`expense-avatar category-${entry.category.toLowerCase()}`}>{entry.title.charAt(0).toUpperCase()}</span><div><strong>{entry.title}</strong><small>{entry.category} · {fullDate(entry.date)}</small></div></div><span className="expense-category">{entry.category}</span><time dateTime={entry.date}>{fullDate(entry.date)}</time><strong className="expense-value">−{cash(entry.amount)}</strong><div className="expense-row-actions"><button aria-label={`Edit ${entry.title}`} title="Edit expense" onClick={() => onEdit(entry)}><Pencil size={15} /></button><button aria-label={`Delete ${entry.title}`} title="Delete expense" onClick={() => onDelete(entry)}><Trash2 size={15} /></button></div></div>)}</div><div className="expenses-footer"><span>{filtered.length} {filtered.length === 1 ? 'expense' : 'expenses'}</span>{filtered.length > 5 && <span>Scroll to see older expenses</span>}</div></div> : <div className="expenses-empty"><div className="empty-wallet" aria-hidden="true"><span /><i /></div><h3>{expenses.length ? 'No matching expenses' : 'No expenses yet'}</h3><p>{expenses.length ? 'Try another date or category to find your expenses.' : 'Add your first expense to start your spending story.'}</p>{!expenses.length && <button className="spending-primary" onClick={onAdd}>+ Add first expense</button>}</div>}
+    <section className="spending-expenses" aria-labelledby="past-expenses-title"><div className="expenses-heading"><div><h2 id="past-expenses-title">Past expenses</h2><p>Newest first · date, category, name and amount</p></div><button className="mobile-add-expense" onClick={onAdd}>+ Add expense</button><div className="expense-filters"><details className="date-filter" ref={dateFilterRef}><summary aria-label={dateFrom && dateTo ? `Filter expense dates: ${fullDate(dateFrom)} to ${fullDate(dateTo)}` : 'Filter expense dates: all dates'}>{dateFrom && dateTo ? `${shortDate(dateFrom)} – ${shortDate(dateTo)}` : 'All dates'}</summary><form className="date-filter-panel" onSubmit={applyDateRange} noValidate><div className="date-filter-fields"><label>From<input type="date" name="from" value={draftFrom} aria-invalid={!!rangeError} onChange={event => { setDraftFrom(event.target.value); setRangeError('') }} /></label><label>To<input type="date" name="to" value={draftTo} aria-invalid={!!rangeError} onChange={event => { setDraftTo(event.target.value); setRangeError('') }} /></label></div>{rangeError && <p className="date-filter-error" role="alert">{rangeError}</p>}<div className="date-filter-actions"><button type="button" onClick={clearDateRange}>Clear</button><button type="submit">Apply dates</button></div></form></details><label className="spending-select"><span className="sr-only">Filter expense categories</span><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label></div></div>
+      {filtered.length ? <div className="expenses-card"><div className="expenses-table-heading"><span>Expense</span><span>Category</span><span>Date</span><span>Amount</span></div><div className="expenses-list" key={`${dateFrom}:${dateTo}:${categoryFilter}`} role="region" aria-label="Past expenses list" tabIndex={filtered.length > 5 ? 0 : undefined}>{filtered.map(entry => <div className="expense-row" key={entry.id}><div className="expense-name"><span className={`expense-avatar category-${entry.category.toLowerCase()}`}>{entry.title.charAt(0).toUpperCase()}</span><div><strong>{entry.title}</strong><small>{entry.category} · {fullDate(entry.date)}</small></div></div><span className="expense-category">{entry.category}</span><time dateTime={entry.date}>{fullDate(entry.date)}</time><strong className="expense-value">−{cash(entry.amount)}</strong><div className="expense-row-actions"><button aria-label={`Edit ${entry.title}`} title="Edit expense" onClick={() => onEdit(entry)}><Pencil size={15} /></button><button aria-label={`Delete ${entry.title}`} title="Delete expense" onClick={() => onDelete(entry)}><Trash2 size={15} /></button></div></div>)}</div><div className="expenses-footer"><span>{filtered.length} {filtered.length === 1 ? 'expense' : 'expenses'}</span>{filtered.length > 5 && <span>Scroll to see older expenses</span>}</div></div> : <div className="expenses-empty"><div className="empty-wallet" aria-hidden="true"><span /><i /></div><h3>{expenses.length ? 'No matching expenses' : 'No expenses yet'}</h3><p>{expenses.length ? 'Try another date or category to find your expenses.' : 'Add your first expense to start your spending story.'}</p>{!expenses.length && <button className="spending-primary" onClick={onAdd}>+ Add first expense</button>}</div>}
     </section>
   </div>
 }

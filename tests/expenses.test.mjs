@@ -5,7 +5,7 @@ import { transformWithOxc } from 'vite'
 
 const source = readFileSync(new URL('../src/lib/expenses.ts', import.meta.url), 'utf8')
 const { code } = await transformWithOxc(source, 'expenses.ts')
-const { validateEntry, saveEntry, deleteEntry, getSummary, monthlySpending, newestFirst } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
+const { validateEntry, saveEntry, deleteEntry, getSummary, monthlySpending, newestFirst, isWithinDateRange, filterEntries, localDate } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
 
 const base = [
   { id: 'income', title: 'Allowance', category: 'Income', date: '2026-11-01', amount: 200, kind: 'income' },
@@ -21,6 +21,14 @@ test('validates blank details, invalid dates, and amounts that are not above zer
   for (const amount of ['-1', 'abc', '', '0.001']) assert.ok(validateEntry({ ...form, amount }).amount)
   assert.ok(validateEntry({ ...form, date: '2026-02-30' }).date)
   assert.deepEqual(validateEntry(form), {})
+})
+
+test('entries can use today but cannot be saved with a future date', () => {
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+  assert.equal(validateEntry({ ...form, date: localDate(today) }).date, undefined)
+  assert.equal(validateEntry({ ...form, date: localDate(tomorrow) }).date, 'Choose today or an earlier date.')
 })
 
 test('adding, editing, and deleting an expense update balance and monthly spending', () => {
@@ -58,4 +66,24 @@ test('history shows saved entries newest first without changing their stored ord
   const saved = saveEntry([older, sameDay, ...base], form, 'new')
   assert.deepEqual(newestFirst(saved).map(entry => entry.id), ['new', 'same-day', 'expense', 'income', 'older'])
   assert.deepEqual(saved.map(entry => entry.id), ['new', 'older', 'same-day', 'income', 'expense'])
+})
+
+test('date range includes both selected days and works across months', () => {
+  assert.equal(isWithinDateRange('2026-10-31', '2026-10-31', '2026-11-02'), true)
+  assert.equal(isWithinDateRange('2026-11-02', '2026-10-31', '2026-11-02'), true)
+  assert.equal(isWithinDateRange('2026-10-30', '2026-10-31', '2026-11-02'), false)
+  assert.equal(isWithinDateRange('2026-11-03', '2026-10-31', '2026-11-02'), false)
+  assert.equal(isWithinDateRange('2026-11-03', '', ''), true)
+})
+
+test('date and category filters return every matching entry across months', () => {
+  const entries = [
+    ...base,
+    { id: 'oct-food', title: 'October meal', category: 'Food', date: '2026-10-31', amount: 5, kind: 'expense' },
+    { id: 'nov-food', title: 'November meal', category: 'Food', date: '2026-11-03', amount: 6, kind: 'expense' },
+    { id: 'nov-ride', title: 'Ride', category: 'Transport', date: '2026-11-03', amount: 2, kind: 'expense' },
+  ]
+  assert.deepEqual(filterEntries(entries, '2026-10-31', '2026-11-03', 'Food').map(entry => entry.id), ['nov-food', 'expense', 'oct-food'])
+  assert.deepEqual(filterEntries(entries, '', '', 'Food').map(entry => entry.id), ['nov-food', 'expense', 'oct-food'])
+  assert.deepEqual(filterEntries(entries, '2026-11-03', '2026-11-03', 'all').map(entry => entry.id), ['nov-food', 'nov-ride'])
 })
